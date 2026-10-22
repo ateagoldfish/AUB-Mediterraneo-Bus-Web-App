@@ -17,14 +17,18 @@
 | [D-001](#d-001) | Website (PWA), not a native app | Decided |
 | [D-002](#d-002) | Two documentation files | Decided |
 | [D-003](#d-003) | Tech stack: static site + Supabase + Leaflet/OSM | Proposed |
-| [D-004](#d-004) | Who can see the live map | Open |
+| [D-004](#d-004) | Who can see the live map | Superseded by D-013 |
 | [D-005](#d-005) | Site available 24/7; live position only in service hours | Proposed |
-| [D-006](#d-006) | GPS tracker: buy ready-made, model to choose | Open — **urgent** |
-| [D-007](#d-007) | Notifications: website as single source; push and/or email | Open |
+| [D-006](#d-006) | GPS tracker: buy ready-made, model to choose | Superseded by D-015 |
+| [D-007](#d-007) | Notifications: website as single source; push and/or email | Superseded by D-014 |
 | [D-008](#d-008) | Dedicated project accounts for future handover | Proposed |
 | [D-009](#d-009) | Where to host the website and which domain | Open |
 | [D-010](#d-010) | Store only the latest bus position | Proposed |
 | [D-011](#d-011) | All UI text in one strings file; English first | Decided |
+| [D-012](#d-012) | Bus is rented out at times → admin "pause tracking" switch | Proposed |
+| [D-013](#d-013) | Live map behind one shared passcode from the registrar | Decided |
+| [D-014](#d-014) | No student data at all → no emails; alerts shown on the site | Decided |
+| [D-015](#d-015) | GPS tracker: LilyGO T-SIM7670G, battery/USB powered | Proposed |
 
 ---
 
@@ -65,7 +69,7 @@
 
 <a id="d-004"></a>
 ## D-004 — Who can see the live map
-- **Date:** 2026-10-19 · **Status:** Open
+- **Date:** 2026-10-19 · **Status:** Superseded by [D-013](#d-013)
 - **Question:** Should anyone on the internet see where the student bus is right now?
 - **Options:**
   1. **Fully public.** Simplest. Public transport apps do this, but this bus carries a specific, identifiable group.
@@ -90,7 +94,7 @@
 
 <a id="d-006"></a>
 ## D-006 — GPS tracker: buy ready-made; model to choose
-- **Date:** 2026-10-19 · **Status:** Open — **urgent** (delivery to Cyprus is slow)
+- **Date:** 2026-10-19 · **Status:** Superseded by [D-015](#d-015)
 - **Decided so far:** The device is **bought, not built** — building it is not the point of the project, and a
   commercial device is more reliable for long-term use by the university. One bus → **one device (+1 spare if
   affordable)**. Must be **4G** (2G/3G networks are being retired across Europe).
@@ -110,7 +114,7 @@
 
 <a id="d-007"></a>
 ## D-007 — Notifications: website as single source; push and/or email
-- **Date:** 2026-10-19 · **Status:** Open
+- **Date:** 2026-10-19 · **Status:** Superseded by [D-014](#d-014)
 - **Constraint:** The admin must not have to post the same notice in two places.
 - **Context:** Notices currently go out by email to a mailing list (~400 students), arriving in Outlook.
 - **Proposal:** The admin posts an alert **once**, on the website's admin page. From there it:
@@ -164,3 +168,81 @@
 - **Date:** 2026-10-19 · **Status:** Decided
 - **Decision:** Every piece of text the user sees lives in one file (e.g. `src/strings/en.json`). Launch in English.
 - **Why:** Lets the text be reviewed or translated later (e.g. Greek) without touching code.
+
+<a id="d-012"></a>
+## D-012 — Bus is rented out at times → admin "pause tracking" switch
+- **Date:** 2026-10-22 · **Status:** Proposed
+- **Context:** The bus is owned by the university but is occasionally rented out for outside events, sometimes possibly
+  within normal service hours. Hiding the location outside service hours (D-005) does not cover that case.
+- **Proposal:** Two independent safeguards:
+  1. **Pause switch** on the admin page, with an optional "resume at" date/time, so she can pause it in advance when
+     she knows about a rental and doesn't have to remember to switch it back on.
+  2. **The tracker is portable** (D-015): for a rental it can simply be switched off or taken off the bus.
+- **Open:** who knows about rentals in advance, and whether that person is the admin.
+
+<a id="d-013"></a>
+## D-013 — Live map behind one shared passcode from the registrar
+- **Date:** 2026-10-22 · **Status:** Decided (replaces D-004)
+- **Decision:** The bus's live position is **not public**. Students get one shared passcode, sent out by the registrar.
+  No accounts.
+- **Who agreed:** the Dean of Engineering (meeting on 2026-10-22), with the team.
+- **Why:** The dean does not want the location publicly accessible. Anything that collects student data (accounts,
+  emails) requires approval from the university board on the main campus in Lebanon, which would not happen in time.
+  A shared passcode collects nothing.
+- **How it works (so it is actually secure):**
+  - The passcode is checked **on the server** (a small Supabase function), not in the page's code — otherwise anyone
+    could read the position by skipping the page.
+  - Only a scrambled version (hash) of the passcode is stored.
+  - The passcode is long enough not to be guessed, and repeated wrong attempts are slowed down (rate limit).
+  - The browser remembers it, so students enter it once per device.
+  - The admin can change it from the admin page (each semester, or if it leaks); the registrar sends the new one.
+- **Limitation (accepted):** a shared passcode can be passed on to others. Changing it regularly limits the damage.
+- **Still to confirm with the dean:** whether the **timetable and alerts** should stay public (recommended — they
+  reveal no location and help visitors and new students) or also go behind the passcode.
+
+<a id="d-014"></a>
+## D-014 — No student data at all → no emails; alerts shown on the site
+- **Date:** 2026-10-22 · **Status:** Decided (replaces D-007)
+- **Decision:** The website collects **no student data**, so it sends **no emails**. Alerts are published once by the
+  admin on the admin page and shown on the website.
+- **Why:** Collecting student emails needs board approval (see D-013). Sending to the existing mailing list from the
+  website is not needed for the minimum version.
+- **Admin's double-posting concern:** if she still wants to email, she can keep sending one short email to her
+  existing list that just points students to the website. Over time the website becomes the place to check.
+- **Push notifications (later, optional):** these store a browser address, not a name or email, but a browser address
+  can still count as personal data under GDPR. Only add them if the DPO confirms they need no board approval.
+
+<a id="d-015"></a>
+## D-015 — GPS tracker: LilyGO T-SIM7670G, battery/USB powered
+- **Date:** 2026-10-22 · **Status:** Proposed (the team's electronics member is leaning towards it; to order this week)
+- **Proposal:** LilyGO **T-SIM7670G** (ESP32-S3) board with an 18650 battery holder, from TinyTronics (NL), ~€45.
+  [Product page](https://www.tinytronics.nl/en/development-boards/microcontroller-boards/with-telecommunication/lilygo-t-sim7670g-esp32-s3-with-18650-battery-holder).
+- **Why this over D-006 option 1 (professional wired tracker):**
+  - The university plans to replace the bus soon, and the bus is rented out at times → a **portable, non-wired**
+    device is better.
+  - It sends straight to Supabase over HTTPS → **no relay server**, no monthly server cost.
+  - Delivery from the Netherlands (EU, no customs) leaves time for a backup plan.
+  - A team member can configure it; the board is widely used, with example code from the manufacturer.
+- **Compatibility check (done 2026-10-22):**
+  - 4G Cat-1, LTE-only. Supported bands include **B3, B7, B20, B38**, which are the bands used by the Cypriot operators
+    (Cyta, Epic, PrimeTel).
+  - Has GNSS (GPS, Galileo, GLONASS, BeiDou). Can make HTTPS requests. **Compatible with the plan (D-003).**
+- **Things to buy with it:**
+  - 18650 cells: **good-quality brand-name cells** (e.g. Samsung, LG, Molicel), not unbranded ones. Buy 2.
+  - LTE and GNSS antennas (IPEX/uFL), if not included — check before ordering.
+  - Enclosure and a way to fix it in place.
+  - USB-C cable (not included) and a power source (see below).
+  - Nano-SIM with a data plan (Cypriot operator). A prepaid SIM must be registered to a person — ideally in the
+    project's or university's name, for handover.
+  - A second board as a spare, if budget allows.
+- **Risks and how to handle them:**
+  - **Battery life.** The shop does not state power use. With 4G and GPS running continuously, a rough estimate is
+    one 18650 lasting somewhere between half a day and a day, so it may not get through a full service day. Measure it
+    on the bench in the first week. Options: plug into a **USB socket on the bus** (the battery then acts as a backup),
+    add a **USB power bank**, or swap/charge the battery nightly. The firmware sleeps outside service hours to save
+    power.
+  - **Heat.** Buses in Cyprus get very hot inside, especially on the dashboard. Li-ion cells must not be charged above
+    about 45 °C. Mount it away from direct sun.
+  - **It's a development board, not a finished product.** It is less robust than a commercial tracker. Acceptable for
+    this project; the university can switch to a commercial tracker later, because only the small "receive position"
+    function would change.
