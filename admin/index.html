@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin · Dorm Shuttle</title>
+  <meta name="theme-color" content="#840132">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/src/img/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/src/css/style.css">
+  <script type="module" src="/src/js/admin.js"></script>
+</head>
+<body data-i18n-title="admin.title">
+  <header class="site-header">
+    <div class="inner">
+      <a class="brand" href="/admin/">
+        <img src="/src/img/bus.svg" alt="">
+        <span>
+          <span class="brand-name" data-i18n="app.name"></span><br>
+          <span class="brand-tagline" data-i18n="admin.title"></span>
+        </span>
+      </a>
+      <div class="header-actions">
+        <a class="btn btn-light" href="/" target="_blank" rel="noopener" data-i18n="admin.viewSite"></a>
+        <button id="logout" class="btn btn-light" type="button" data-i18n="admin.logout" hidden></button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <noscript><div class="banner banner-conn">This page needs JavaScript and an up-to-date browser.</div></noscript>
+    <div id="admin-msg" class="banner banner-conn" role="alert" hidden></div>
+
+    <div id="login" class="card page-narrow" hidden>
+      <h1 style="font-size:1.3rem;margin-bottom:12px" data-i18n="admin.loginTitle"></h1>
+      <form id="login-form" novalidate>
+        <label for="login-passcode" data-i18n="admin.loginLabel"></label>
+        <input id="login-passcode" type="password" autocomplete="current-password" required>
+        <p id="login-error" class="form-error" role="alert" hidden></p>
+        <p><button class="btn" type="submit" data-i18n="admin.loginSubmit"></button></p>
+      </form>
+    </div>
+
+    <div id="panel" hidden>
+      <nav class="admin-nav">
+        <a href="#alerts" data-i18n="admin.nav.alerts"></a>
+        <a href="#tracking" data-i18n="admin.nav.tracking"></a>
+        <a href="#timetable" data-i18n="admin.nav.timetable"></a>
+        <a href="#passcodes" data-i18n="admin.nav.passcodes"></a>
+      </nav>
+
+      <div id="tracker-status" class="banner" role="status"></div>
+
+      <!-- Alerts -->
+      <section id="alerts" class="admin-section">
+        <h2 class="eyebrow" data-i18n="admin.nav.alerts"></h2>
+        <div class="card">
+          <h2 data-i18n="admin.alerts.active"></h2>
+          <div id="alert-list"></div>
+          <p id="alert-list-msg" class="form-msg" role="alert" hidden></p>
+        </div>
+        <div class="card">
+          <h2 data-i18n="admin.alerts.new"></h2>
+          <form id="alert-form" novalidate>
+            <div class="form-row">
+              <div class="field">
+                <label for="alert-type" data-i18n="admin.alerts.type"></label>
+                <select id="alert-type">
+                  <option value="delay" data-i18n="alert.delay"></option>
+                  <option value="cancel" data-i18n="alert.cancel"></option>
+                  <option value="info" data-i18n="alert.info"></option>
+                </select>
+              </div>
+              <div class="field" id="delay-field">
+                <label for="alert-delay" data-i18n="admin.alerts.delayMin"></label>
+                <input id="alert-delay" type="number" min="1" max="240" inputmode="numeric">
+              </div>
+            </div>
+            <div class="field">
+              <label for="alert-message" data-i18n="admin.alerts.message"></label>
+              <textarea id="alert-message" maxlength="300" data-i18n-placeholder="admin.alerts.messagePlaceholder"></textarea>
+            </div>
+            <fieldset class="field" id="affects-field" style="border:0;padding:0;margin:0 0 14px">
+              <legend style="font-weight:600;color:var(--ink);font-size:.9rem;margin-bottom:6px" data-i18n="admin.alerts.affects"></legend>
+              <div id="affects-list" class="check-list"></div>
+            </fieldset>
+            <div class="field">
+              <label for="alert-expires" data-i18n="admin.alerts.expires"></label>
+              <input id="alert-expires" type="datetime-local">
+            </div>
+            <button class="btn" type="submit" data-i18n="admin.alerts.publish"></button>
+            <p class="form-msg" hidden></p>
+          </form>
+        </div>
+      </section>
+
+      <!-- Live tracking -->
+      <section id="tracking" class="admin-section">
+        <h2 class="eyebrow" data-i18n="admin.nav.tracking"></h2>
+        <div class="card">
+          <h2 data-i18n="admin.pause.title"></h2>
+          <p class="muted small" data-i18n="admin.pause.help"></p>
+          <p id="pause-status" style="font-weight:700;color:var(--ink)"></p>
+          <form id="pause-form" novalidate>
+            <div id="pause-until-field" class="field">
+              <label for="pause-until" data-i18n="admin.pause.until"></label>
+              <input id="pause-until" type="datetime-local">
+            </div>
+            <button id="pause-btn" class="btn" type="submit" data-i18n="admin.pause.pause"></button>
+            <button id="resume-btn" class="btn btn-outline" type="button" data-i18n="admin.pause.resume"></button>
+            <p class="form-msg" hidden></p>
+          </form>
+        </div>
+        <div class="card">
+          <h2 data-i18n="admin.hours.title"></h2>
+          <p class="muted small" data-i18n="admin.hours.help"></p>
+          <form id="hours-form" novalidate>
+            <div id="hours-grid" class="hours-grid"></div>
+            <p><button class="btn" type="submit" data-i18n="admin.hours.save"></button></p>
+            <p class="form-msg" hidden></p>
+          </form>
+        </div>
+      </section>
+
+      <!-- Timetable -->
+      <section id="timetable" class="admin-section">
+        <h2 class="eyebrow" data-i18n="admin.nav.timetable"></h2>
+        <p class="muted small" data-i18n="admin.tt.help"></p>
+        <div class="form-row" style="margin-bottom:12px">
+          <div>
+            <label for="tt-filter" data-i18n="admin.tt.filter"></label>
+            <select id="tt-filter"></select>
+          </div>
+        </div>
+        <div id="trip-list"></div>
+        <p><button id="add-trip" class="btn btn-outline" type="button" data-i18n="admin.tt.add"></button></p>
+        <div class="sticky-save">
+          <button id="save-trips" class="btn" type="button" data-i18n="admin.tt.save"></button>
+          <button id="clear-trips" class="btn btn-outline btn-small" type="button" data-i18n="admin.tt.clearAll"></button>
+          <div id="trips-msg" class="form-msg" role="alert" hidden></div>
+        </div>
+      </section>
+
+      <!-- Passcodes -->
+      <section id="passcodes" class="admin-section">
+        <h2 class="eyebrow" data-i18n="admin.nav.passcodes"></h2>
+        <div class="card">
+          <h2 data-i18n="admin.pass.student"></h2>
+          <p class="muted small" data-i18n="admin.pass.studentHelp"></p>
+          <form class="pass-form" data-kind="student" novalidate>
+            <div class="form-row">
+              <div class="field"><label for="student-new" data-i18n="admin.pass.new"></label><input id="student-new" type="text" autocomplete="off"></div>
+              <div class="field"><label for="student-confirm" data-i18n="admin.pass.confirm"></label><input id="student-confirm" type="text" autocomplete="off"></div>
+            </div>
+            <button class="btn" type="submit" data-i18n="admin.pass.save"></button>
+            <p class="form-msg" hidden></p>
+          </form>
+        </div>
+        <div class="card">
+          <h2 data-i18n="admin.pass.admin"></h2>
+          <p class="muted small" data-i18n="admin.pass.adminHelp"></p>
+          <form class="pass-form" data-kind="admin" novalidate>
+            <div class="form-row">
+              <div class="field"><label for="admin-new" data-i18n="admin.pass.new"></label><input id="admin-new" type="password" autocomplete="new-password"></div>
+              <div class="field"><label for="admin-confirm" data-i18n="admin.pass.confirm"></label><input id="admin-confirm" type="password" autocomplete="new-password"></div>
+            </div>
+            <button class="btn" type="submit" data-i18n="admin.pass.save"></button>
+            <p class="form-msg" hidden></p>
+          </form>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

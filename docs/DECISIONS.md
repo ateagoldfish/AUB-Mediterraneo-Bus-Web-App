@@ -37,7 +37,10 @@
 | [D-021](#d-021) | No route line on the map — route isn't fixed | Decided |
 | [D-022](#d-022) | Site works without a timetable; admin sets service hours | Decided |
 | [D-023](#d-023) | Log only stop arrival times, to help build a timetable? | Open |
-| [D-024](#d-024) | Timetable stored as trips; tracked vs. untracked vehicles | Proposed |
+| [D-024](#d-024) | Timetable stored as trips; tracked vs. untracked vehicles | Superseded by D-026 |
+| [D-025](#d-025) | Plain HTML/JS, no build step; demo mode until Supabase exists | Decided |
+| [D-026](#d-026) | Timetable: one `trips` table with times per stop | Decided |
+| [D-027](#d-027) | Position by polling; passcode checked in the database | Decided |
 
 ---
 
@@ -355,7 +358,7 @@
 
 <a id="d-024"></a>
 ## D-024 — Timetable stored as trips; tracked vs. untracked vehicles
-- **Date:** 2026-10-29 · **Status:** Proposed
+- **Date:** 2026-10-29 · **Status:** Superseded by [D-026](#d-026)
 - **Context:** The older schedule ([example](reference/example-timetable.md)) is organised as **runs** ("trips"): each
   has a direction, a day pattern (Mon–Thu, Fri, Sat–Sun), and usually only the first stop's time. Some trips used a
   coach as well as the AUB electric bus, and weekend trips went via Old Town.
@@ -368,3 +371,43 @@
     (e.g. "8:30 Anavargos(coach) 08:40 Tepak") are too irregular to read reliably.
 - **Found in the example:** one cell reads "21:05 Anavargos / 20:15 Tepak" — a typo, a reminder that a structured form
   that checks times is worth having.
+
+<a id="d-025"></a>
+## D-025 — Plain HTML/JS, no build step; demo mode until Supabase exists
+- **Date:** 2026-10-30 · **Status:** Decided
+- **Decision:**
+  - The site is plain HTML, CSS and JavaScript files. There is no framework, no `npm install` and no build step.
+    Cloudflare Pages serves the files as they are.
+  - The map library (Leaflet) and the font (Inter) are copied into the project rather than loaded from other sites,
+    so the site doesn't depend on outside services and visitors' IP addresses aren't sent to Google (D-020).
+  - The site has a **demo mode**: while `src/config.js` has no Supabase address, it runs on the example timetable
+    with a simulated bus and a "Demo mode" bar for simulating problems (weak signal, server down, …). Everything the
+    admin changes in demo mode is stored only in that browser.
+- **Why:** The fewest moving parts for a non-programmer to maintain or hand over. Demo mode lets the team and the
+  university try everything before the Supabase account and the tracker are ready.
+
+<a id="d-026"></a>
+## D-026 — Timetable: one `trips` table with times per stop
+- **Date:** 2026-10-30 · **Status:** Decided (replaces D-024)
+- **Decision:** Same idea as D-024 — the timetable is a list of runs, each with days, a direction, a note and an
+  "on live map" flag — but each run's stop times are stored inside the run (`times`), instead of a separate
+  `trip_times` table.
+- **Why:** Simpler: the admin page saves the whole timetable in one go (`save_timetable`, all-or-nothing), and there is
+  only one table to understand.
+- **Kept from D-024:** structured editor instead of Excel upload; runs on another vehicle are marked "not on map".
+- **Alerts** list the runs they affect (`trip_ids`). The admin page suggests the next run by default and offers
+  "all remaining runs today"; it fills in the actual runs when she publishes.
+
+<a id="d-027"></a>
+## D-027 — Position by polling; passcode checked in the database
+- **Date:** 2026-10-30 · **Status:** Decided
+- **Decision:**
+  - The student page asks for the bus position every 10 seconds while it is open and visible, instead of using a
+    live push connection.
+  - The passcode check, pause switch and service hours are all enforced inside the database function
+    `get_bus_position`. The tracker reports through `report_position`. No separate server code is needed.
+- **Why:** A live push connection would need the position table to be readable by the browser, which would bypass
+  the passcode. Polling every 10 s is as fast as the tracker reports anyway, and it is well within Supabase's free
+  tier (~400 students, mostly not all at once).
+- **Tested:** the security rules were checked against a local copy of the database (anonymous visitors, the admin,
+  another logged-in account, wrong passcodes, rate limiting, pause, out-of-hours).

@@ -4,7 +4,7 @@
 > It only ever describes the **present state**. When something changes, edit it in place; the reasoning and history
 > belong in [`DECISIONS.md`](DECISIONS.md). Items marked **(proposed)** are not yet confirmed — see the linked decision.
 
-_Last updated: 2026-10-29_
+_Last updated: 2026-10-30_
 
 ---
 
@@ -158,7 +158,7 @@ and what to do. Details in [D-018](DECISIONS.md#d-018).
 | Tracker offline during service hours | Warning banner: "Tracker hasn't reported for X min." |
 | Tracker battery low | Warning banner with battery level (once battery reporting exists). |
 
-## 6. Architecture (proposed — [D-003](DECISIONS.md#d-003))
+## 6. Architecture ([D-003](DECISIONS.md#d-003), [D-025](DECISIONS.md#d-025))
 
 ```
  ┌──────────────┐  HTTPS, every ~10–20 s     ┌──────────────────────────┐
@@ -179,32 +179,37 @@ and what to do. Details in [D-018](DECISIONS.md#d-018).
 |---|---|---|
 | Front end | Static site (HTML/CSS/JS), PWA | No server code on the web host |
 | Map | Leaflet + OpenStreetMap tiles | Free; attribution required |
-| Back end | Supabase (EU region) | Postgres DB, Auth (admin only), small server functions for the tracker and passcode check |
+| Back end | Supabase (EU region) | Postgres DB, Auth (admin only), database functions for the tracker and passcode check — all in `supabase/schema.sql` |
 | Hosting | Cloudflare Pages, domain `dormshuttle.com` | See [D-019](DECISIONS.md#d-019) |
-| GPS ingestion | Tracker posts directly to a Supabase function over HTTPS (no relay server) | See [D-015](DECISIONS.md#d-015) |
+| GPS ingestion | Tracker posts directly to the `report_position` database function over HTTPS (no relay server) | See [D-015](DECISIONS.md#d-015), [`TRACKER.md`](TRACKER.md) |
+| Demo mode | While no Supabase project is set in `src/config.js`, the site runs on example data with a simulated bus, stored in the browser | [D-025](DECISIONS.md#d-025) |
 | Source code | GitHub: `ateagoldfish/AUB-Mediterraneo-Bus-Web-App` | |
 
-## 7. Data model (proposed)
+## 7. Data model
+
+Defined in [`supabase/schema.sql`](../supabase/schema.sql).
 
 | Table | Purpose | Key fields |
 |---|---|---|
-| `stops` | The stops | `id`, `name`, `lat`, `lng`, `order`, `weekend_only` |
-| `trips` | One bus run (timetable) | `id`, `days` (e.g. Mon–Thu), `direction` (to campus / to dorms), `note` (e.g. "coach") |
-| `trip_times` | Times at stops for a trip | `trip_id`, `stop_id`, `time` (only the stops with a known time) |
-| `alerts` | Delays / cancellations / notices | `id`, `type`, `message`, `delay_min`, `affects` (departures), `starts_at`, `expires_at`, `active` |
+| `stops` | The stops | `id`, `name`, `lat`, `lng`, `sort` (dorms first, campus last), `weekend_only` |
+| `trips` | One bus run (timetable) | `id`, `days` (0 = Sun … 6 = Sat), `direction` (`to_campus` / `to_dorms`), `times` (e.g. `{"anavargos": "08:30", "tepak": "08:40"}`), `note` (e.g. "Coach"), `tracked` ([D-026](DECISIONS.md#d-026)) |
+| `alerts` | Delays / cancellations / notices | `id`, `type` (`delay` / `cancel` / `info`), `message`, `delay_min`, `trip_ids` (affected runs), `created_at`, `expires_at` |
 | `bus_position` | **Latest position only** (one row, overwritten) | `lat`, `lng`, `speed`, `heading`, `battery`, `recorded_at` |
-| `settings` | One row of admin settings | `passcode_hash` (student passcode), `tracking_paused`, `paused_until`, `service_hours` |
+| `settings` | One row of admin settings | `admin_email`, `service_hours`, `margin_minutes`, `paused`, `paused_until`, `student_passcode_hash`, `device_key_hash` |
+| `passcode_attempts` | Wrong passcode attempts (kept 15 min) for brute-force protection | `client`, `attempted_at` |
 
 The admin login is a single Supabase Auth user with a **project email** (not hers) and the admin passcode as its
 password. The login page fills in the email itself, so she only types the passcode ([D-017](DECISIONS.md#d-017)).
 
 Access rules:
-- Everyone can **read** `stops`, `trips`, `trip_times` and active `alerts` (see [D-013](DECISIONS.md#d-013) on whether these
+- Everyone can **read** `stops`, `trips` and active `alerts` (see [D-013](DECISIONS.md#d-013) on whether these
   are also behind the passcode).
 - **Nobody can read `bus_position` directly.** The student page asks a server function for it, sending the passcode;
   the function checks the passcode, service hours and the pause switch, and only then returns the position.
-- Only the logged-in admin can **write** `stops`, `trips`, `trip_times`, `alerts`, `settings`.
-- Only the tracker (via its secret key, checked by a server function) can **write** `bus_position`.
+- Only the logged-in admin can **write** `stops`, `trips`, `alerts`, and the service hours / pause in `settings`. The
+  passcode hashes can only be changed through `set_student_passcode` (or directly in the Supabase dashboard).
+- Only the tracker (via its secret key, checked by `report_position`) can **write** `bus_position`. Outside service
+  hours or while paused, only its battery and "last seen" time are stored — not its location.
 
 ## 8. GPS tracker
 
@@ -311,3 +316,24 @@ page code. Adding a language later means copying that file and translating it. S
 | Style | Like aubmed.ac.cy: maroon header bar, white rounded cards with soft shadow, pill-shaped buttons, small letter-spaced uppercase section labels |
 | Theme | Light theme for the minimum version |
 | Feel | Large text and tap targets, one column on phones, nothing hidden behind menus |
+
+## 15. Code layout
+
+| Path | What it is |
+|---|---|
+| `index.html` | Student page |
+| `admin/index.html` | Admin page |
+| `privacy.html`, `404.html` | Privacy notice, "page not found" |
+| `sw.js`, `manifest.webmanifest` | Offline support and "add to home screen" (PWA) |
+| `src/config.js` | Settings: Supabase address and public key, thresholds. Empty Supabase address = demo mode |
+| `src/strings/en.json` | **All** text shown to users |
+| `src/css/style.css` | All styling |
+| `src/js/app.js`, `src/js/admin.js` | Logic for the two pages |
+| `src/js/api.js` | Chooses demo or real back end |
+| `src/js/demo-backend.js`, `src/js/demo-data.js` | Demo back end and example data |
+| `src/js/supabase-backend.js` | Real back end (plain web requests, no library) |
+| `src/js/time.js`, `src/js/timetable.js` | Cyprus time, service hours, next-run calculations |
+| `src/vendor/`, `src/fonts/` | Leaflet map library and Inter font, stored with the site |
+| `supabase/schema.sql` | Database tables, security rules and functions |
+| `docs/SETUP.md` | Step-by-step: Supabase, Cloudflare, going live |
+| `docs/TRACKER.md` | How the GPS tracker talks to the server |
