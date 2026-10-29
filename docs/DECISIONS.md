@@ -22,7 +22,7 @@
 | [D-006](#d-006) | GPS tracker: buy ready-made, model to choose | Superseded by D-015 |
 | [D-007](#d-007) | Notifications: website as single source; push and/or email | Superseded by D-014 |
 | [D-008](#d-008) | Dedicated project accounts for future handover | Proposed |
-| [D-009](#d-009) | Where to host the website and which domain | Open |
+| [D-009](#d-009) | Where to host the website and which domain | Superseded by D-019 |
 | [D-010](#d-010) | Store only the latest bus position | Proposed |
 | [D-011](#d-011) | All UI text in one strings file; English first | Decided |
 | [D-012](#d-012) | Bus is rented out at times → admin "pause tracking" switch | Proposed |
@@ -32,6 +32,7 @@
 | [D-016](#d-016) | Look: university colours, own bus icon, no logo | Decided |
 | [D-017](#d-017) | Admin logs in with a passcode only | Decided |
 | [D-018](#d-018) | Every failure has its own clear screen | Decided |
+| [D-019](#d-019) | Cloudflare + dormshuttle.com, under a project Gmail | Decided |
 
 ---
 
@@ -145,7 +146,7 @@
 
 <a id="d-009"></a>
 ## D-009 — Where to host the website and which domain
-- **Date:** 2026-10-19 · **Status:** Open
+- **Date:** 2026-10-19 · **Status:** Superseded by [D-019](#d-019)
 - **Options:**
   1. **Spare Hostinger Premium slot** (already paid; EU servers). Easy now, but it sits inside a personal plan alongside
      another project, which makes handover harder.
@@ -288,3 +289,15 @@
     tuned after testing on the bus.)
   - When tracking is paused, students are told it's unavailable but not why (rentals are not their business).
   - Failed admin saves keep her edits on screen and never save half a change.
+
+<a id="d-019"></a>
+## D-019 — Cloudflare + dormshuttle.com, under a project Gmail
+- **Date:** 2026-10-29 · **Status:** Decided (replaces D-009)
+- **Decision:**
+  - A new Gmail account made only for this project is the owner account for everything (D-008).
+  - Domain **dormshuttle.com**, bought through Cloudflare Registrar with that account.
+  - Website hosted on **Cloudflare Pages** (free), deployed automatically from the GitHub repository.
+- **Why:** At-cost domain, free hosting, automatic deploys, and handover is just changing the account owner. Keeps the
+  project out of the personal Hostinger plan. The name avoids "AUB" (D-016).
+- **Later option:** Cloudflare Email Routing (free) can forward an address like `admin@dormshuttle.com` to the
+  project Gmail, giving the project a branded address without paying for an email service.

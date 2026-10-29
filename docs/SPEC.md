@@ -167,7 +167,7 @@ and what to do. Details in [D-018](DECISIONS.md#d-018).
 | Front end | Static site (HTML/CSS/JS), PWA | No server code on the web host |
 | Map | Leaflet + OpenStreetMap tiles | Free; attribution required |
 | Back end | Supabase (EU region) | Postgres DB, Auth (admin only), small server functions for the tracker and passcode check |
-| Hosting | Static hosting — Hostinger or a free static host | See [D-009](DECISIONS.md#d-009) |
+| Hosting | Cloudflare Pages, domain `dormshuttle.com` | See [D-019](DECISIONS.md#d-019) |
 | GPS ingestion | Tracker posts directly to a Supabase function over HTTPS (no relay server) | See [D-015](DECISIONS.md#d-015) |
 | Source code | GitHub: `ateagoldfish/AUB-Mediterraneo-Bus-Web-App` | |
 
@@ -261,7 +261,7 @@ page code. Adding a language later means copying that file and translating it. S
 | When | Milestone |
 |---|---|
 | Week of 19 Oct | ✅ Tracker and parts ordered. Collect stops/timetable; driver consent; DPO contact |
-| Week of 26 Oct | Project email account; domain + hosting ([D-009](DECISIONS.md#d-009)); Supabase project |
+| Week of 26 Oct | Project email account; domain + hosting ([D-019](DECISIONS.md#d-019)); Supabase project |
 | Weeks of 26 Oct, 2 Nov | Student page: timetable + map with route (fake bus position); tracker firmware on the bench |
 | Week of 9 Nov | Supabase, admin page, alerts, passcode, pause switch |
 | Week of 16 Nov | Tracker connected end-to-end (or phone stand-in if the device is late) |
