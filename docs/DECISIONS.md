@@ -37,6 +37,7 @@
 | [D-021](#d-021) | No route line on the map — route isn't fixed | Decided |
 | [D-022](#d-022) | Site works without a timetable; admin sets service hours | Decided |
 | [D-023](#d-023) | Log only stop arrival times, to help build a timetable? | Open |
+| [D-024](#d-024) | Timetable stored as trips; tracked vs. untracked vehicles | Proposed |
 
 ---
 
@@ -351,3 +352,19 @@
 - **Privacy:** Much less detailed than a movement history, but still information about the driver's working pattern.
   Needs the driver's agreement and the DPO's OK; keep for a limited time (e.g. one semester).
 - **Not in the minimum version.** Decide after launch.
+
+<a id="d-024"></a>
+## D-024 — Timetable stored as trips; tracked vs. untracked vehicles
+- **Date:** 2026-10-29 · **Status:** Proposed
+- **Context:** The older schedule ([example](reference/example-timetable.md)) is organised as **runs** ("trips"): each
+  has a direction, a day pattern (Mon–Thu, Fri, Sat–Sun), and usually only the first stop's time. Some trips used a
+  coach as well as the AUB electric bus, and weekend trips went via Old Town.
+- **Proposal:**
+  - Store the timetable as trips (`trips` + `trip_times`) rather than a flat list of departures, matching how the
+    coordinator already thinks about it. Times at later stops are optional.
+  - A trip can carry a note such as "coach" — the website then says that **this run is not shown on the live map**,
+    so students don't wait for a marker that will never appear.
+  - The admin edits the timetable in a structured form, not by uploading Excel: the spreadsheet's free-text cells
+    (e.g. "8:30 Anavargos(coach) 08:40 Tepak") are too irregular to read reliably.
+- **Found in the example:** one cell reads "21:05 Anavargos / 20:15 Tepak" — a typo, a reminder that a structured form
+  that checks times is worth having.

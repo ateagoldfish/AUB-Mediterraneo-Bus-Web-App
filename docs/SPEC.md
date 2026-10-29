@@ -39,10 +39,10 @@ It must be usable long-term and be something the university could take over (see
 
 | Item | Value |
 |---|---|
-| Buses | **1**, owned by the university. Occasionally rented out for outside events ([D-012](DECISIONS.md#d-012)). Expected to be replaced by a new bus in the near future. |
+| Buses | **1 tracked: the AUB electric bus**, owned by the university (_to confirm_ which vehicle carries the tracker). Older schedules also used a **coach** at peak times — _to confirm_ whether it still runs ([D-024](DECISIONS.md#d-024)). It is occasionally rented out for outside events ([D-012](DECISIONS.md#d-012)). Expected to be replaced by a new bus in the near future. |
 | Routes | **1** |
-| Stops | **3** — see table below |
-| Order of stops | _to collect_ |
+| Stops | **3 on weekdays, plus Old Town on weekends** (older schedule) — see table below |
+| Order of stops | To campus: Anavargos → Tepak (~10 min) → Campus. To dorms: the reverse. Weekends: via Old Town. |
 | Timetable | **None at the moment** — the university is running without a fixed timetable. The site must work with or without one ([D-022](DECISIONS.md#d-022)). |
 | Route path | **Not fixed** — the driver chooses the roads. No route line is drawn; the map shows the stops and the live bus ([D-021](DECISIONS.md#d-021)). |
 | Service hours | Set by the admin (e.g. Mon–Fri 07:00–21:00), independent of the timetable ([D-022](DECISIONS.md#d-022)) — _to collect_ |
@@ -51,7 +51,8 @@ It must be usable long-term and be something the university could take over (see
 |---|---|---|
 | University — AUB Mediterraneo, Pafos | 34.767469, 32.417171 | Where the bus parks (team visit) |
 | Dorms — Anavargos | 34.800635, 32.451972 | Where the bus parks (team visit) |
-| Dorms — second location (name _to confirm_) | 34.776953, 32.434246 | Approximate bus stop (asked on site); building at 34.776984, 32.434626 |
+| Dorms — Tepak | 34.776953, 32.434246 | Approximate bus stop (asked on site); building at 34.776984, 32.434626 |
+| Old Town (weekends) | _to collect_ | Appears in the older weekend schedule |
 
 The data model still allows more stops, trips or routes later without a rebuild, but the interface is designed for
 one route.
@@ -65,7 +66,7 @@ one route.
 - **Next departure** from each stop, highlighted — *only when a timetable has been entered*.
 - Full timetable for today (expandable to other days, if the schedule varies by day) — *only when a timetable has
   been entered*. Without one, the page leads with the map and shows the service hours instead.
-- Map with the 3 stops (no route line — [D-021](DECISIONS.md#d-021)).
+- Map with the stops (no route line — [D-021](DECISIONS.md#d-021)).
 - **Live bus marker** (with "last updated X s ago"), shown only after the student enters the passcode. The browser
   remembers the passcode, so it is entered once per device (until the passcode changes).
 - When no recent position is available (outside service hours, tracking paused, device offline), the marker is hidden
@@ -78,7 +79,9 @@ one route.
 - **Publish alert:** pick type (delay / cancellation / other), optional delay in minutes, optional affected
   departure(s), free-text message, optional expiry time → Publish.
 - **Clear alert** in one tap.
-- **Edit timetable:** simple editable table → Save.
+- **Edit timetable** (optional — [D-024](DECISIONS.md#d-024)): grouped by day pattern (e.g. Mon–Thu, Fri, Sat–Sun), each
+  trip has a direction and a departure time from its first stop; times at later stops are optional. "Copy day
+  group" and "Clear timetable" buttons.
 - **Pause tracking** switch (e.g. when the bus is rented out) with an optional automatic resume date/time.
 - **Service hours** editor (days and start/end times when the bus normally runs).
 - **Change student passcode** (then the registrar sends the new one to students).
@@ -185,8 +188,9 @@ and what to do. Details in [D-018](DECISIONS.md#d-018).
 
 | Table | Purpose | Key fields |
 |---|---|---|
-| `stops` | The 3 stops | `id`, `name`, `lat`, `lng`, `order` |
-| `departures` | The timetable | `id`, `stop_id`, `time`, `days` (e.g. Mon–Fri), `note` |
+| `stops` | The stops | `id`, `name`, `lat`, `lng`, `order`, `weekend_only` |
+| `trips` | One bus run (timetable) | `id`, `days` (e.g. Mon–Thu), `direction` (to campus / to dorms), `note` (e.g. "coach") |
+| `trip_times` | Times at stops for a trip | `trip_id`, `stop_id`, `time` (only the stops with a known time) |
 | `alerts` | Delays / cancellations / notices | `id`, `type`, `message`, `delay_min`, `affects` (departures), `starts_at`, `expires_at`, `active` |
 | `bus_position` | **Latest position only** (one row, overwritten) | `lat`, `lng`, `speed`, `heading`, `battery`, `recorded_at` |
 | `settings` | One row of admin settings | `passcode_hash` (student passcode), `tracking_paused`, `paused_until`, `service_hours` |
@@ -195,11 +199,11 @@ The admin login is a single Supabase Auth user with a **project email** (not her
 password. The login page fills in the email itself, so she only types the passcode ([D-017](DECISIONS.md#d-017)).
 
 Access rules:
-- Everyone can **read** `stops`, `departures` and active `alerts` (see [D-013](DECISIONS.md#d-013) on whether these
+- Everyone can **read** `stops`, `trips`, `trip_times` and active `alerts` (see [D-013](DECISIONS.md#d-013) on whether these
   are also behind the passcode).
 - **Nobody can read `bus_position` directly.** The student page asks a server function for it, sending the passcode;
   the function checks the passcode, service hours and the pause switch, and only then returns the position.
-- Only the logged-in admin can **write** `stops`, `departures`, `alerts`, `settings`.
+- Only the logged-in admin can **write** `stops`, `trips`, `trip_times`, `alerts`, `settings`.
 - Only the tracker (via its secret key, checked by a server function) can **write** `bus_position`.
 
 ## 8. GPS tracker
@@ -280,10 +284,10 @@ page code. Adding a language later means copying that file and translating it. S
 
 ## 13. Facts still to collect
 
-- [ ] Name of the second dorm location
-- [ ] Order of stops / direction of travel (does it loop University → Dorm → Dorm → University?)
+- [ ] Which vehicle carries the tracker (electric bus?) and whether the coach still runs
+- [ ] Old Town stop location, and whether weekend trips still run
 - [ ] Service hours (days, first and last run)
-- [ ] Whether a new timetable is coming, and its format (an old example helps for the format)
+- [ ] Whether a new timetable is coming (format known — see [example](reference/example-timetable.md))
 - [ ] Is there a USB or 12/24 V (cigarette-lighter) socket on the bus near a window?
 - [ ] Driver(s)' consent to the tracker
 - [ ] How the admin will know (and remember) to pause tracking when the bus is rented out
