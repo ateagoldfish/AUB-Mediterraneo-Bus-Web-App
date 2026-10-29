@@ -28,7 +28,10 @@
 | [D-012](#d-012) | Bus is rented out at times → admin "pause tracking" switch | Proposed |
 | [D-013](#d-013) | Live map behind one shared passcode from the registrar | Decided |
 | [D-014](#d-014) | No student data at all → no emails; alerts shown on the site | Decided |
-| [D-015](#d-015) | GPS tracker: LilyGO T-SIM7670G, battery/USB powered | Proposed |
+| [D-015](#d-015) | GPS tracker: LilyGO T-SIM7670G, battery/USB powered | Decided |
+| [D-016](#d-016) | Look: university colours, own bus icon, no logo | Decided |
+| [D-017](#d-017) | Admin logs in with a passcode only | Decided |
+| [D-018](#d-018) | Every failure has its own clear screen | Decided |
 
 ---
 
@@ -214,7 +217,7 @@
 
 <a id="d-015"></a>
 ## D-015 — GPS tracker: LilyGO T-SIM7670G, battery/USB powered
-- **Date:** 2026-10-22 · **Status:** Proposed (the team's electronics member is leaning towards it; to order this week)
+- **Date:** 2026-10-22 · **Status:** Decided — purchased with all parts (2026-10-29)
 - **Proposal:** LilyGO **T-SIM7670G** (ESP32-S3) board with an 18650 battery holder, from TinyTronics (NL), ~€45.
   [Product page](https://www.tinytronics.nl/en/development-boards/microcontroller-boards/with-telecommunication/lilygo-t-sim7670g-esp32-s3-with-18650-battery-holder).
 - **Why this over D-006 option 1 (professional wired tracker):**
@@ -246,3 +249,42 @@
   - **It's a development board, not a finished product.** It is less robust than a commercial tracker. Acceptable for
     this project; the university can switch to a commercial tracker later, because only the small "receive position"
     function would change.
+
+<a id="d-016"></a>
+## D-016 — Look: university colours, own bus icon, no logo
+- **Date:** 2026-10-29 · **Status:** Decided
+- **Decision:** Use the university's colours — black, white and maroon `#781432`. Use a simple bus pictogram as the
+  icon instead of the university logo. Add a footer saying it is a student project, not an official service.
+- **Why:** Looks familiar to students, but avoids using the logo (and implying the site is official) before the
+  university gives written permission. Logo and wording can be switched once permission is given.
+- **Detail:** Maroon on white is very readable (contrast ratio about 11:1). Maroon on black is not (about 2:1), so
+  maroon is never used for text on dark backgrounds. A dark theme is left out of the minimum version for that reason
+  and for simplicity.
+- **Open:** domain and site name should avoid "AUB" until permission (see D-009).
+
+<a id="d-017"></a>
+## D-017 — Admin logs in with a passcode only
+- **Date:** 2026-10-29 · **Status:** Decided
+- **Decision:** The admin page has one "Admin passcode" field. It is separate from the student passcode and needs none
+  of her personal data.
+- **How (simple and secure):** Supabase's normal login is used with a single admin user whose email is the **project
+  email** (D-008), not hers. The login page fills in that email itself, so she only types the passcode. This way we use
+  Supabase's tested login, rate-limiting and sessions instead of writing our own.
+- **Trade-off:** if a deputy is added and they share the passcode, the site can't tell who made a change. Acceptable for
+  one or two people; separate logins can be added later.
+- **Rule:** the admin passcode is long (e.g. four random words), never written in the code or repository, and can be
+  changed from the admin page.
+
+<a id="d-018"></a>
+## D-018 — Every failure has its own clear screen
+- **Date:** 2026-10-29 · **Status:** Decided
+- **Decision:** All error and status situations listed in SPEC §5.4 get their own message. The page never shows a
+  blank screen or a wrong position.
+- **Key choices:**
+  - The timetable and alerts are **saved on the student's phone** after each successful load, so they still show
+    (marked "saved at HH:MM") when the connection or back end fails. The timetable is the part that matters most, and
+    it should work even when everything else is down.
+  - Bus position freshness: under 1 min = normal; 1–5 min = faded "last seen"; over 5 min = hidden. (Thresholds can be
+    tuned after testing on the bus.)
+  - When tracking is paused, students are told it's unavailable but not why (rentals are not their business).
+  - Failed admin saves keep her edits on screen and never save half a change.

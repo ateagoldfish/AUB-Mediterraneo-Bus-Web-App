@@ -4,7 +4,7 @@
 > It only ever describes the **present state**. When something changes, edit it in place; the reasoning and history
 > belong in [`DECISIONS.md`](DECISIONS.md). Items marked **(proposed)** are not yet confirmed — see the linked decision.
 
-_Last updated: 2026-10-22_
+_Last updated: 2026-10-29_
 
 ---
 
@@ -32,7 +32,7 @@ It must be usable long-term and be something the university could take over (see
 | Role | Who | Can do | Account |
 |---|---|---|---|
 | **Student** | ~400 students (growing) | View schedule, alerts, map. No input. | None — one shared passcode, distributed by the registrar ([D-013](DECISIONS.md#d-013)) |
-| **Admin** | University transport coordinator (one person, possibly a deputy) | Edit timetable, publish/clear alerts, pause tracking, change passcode | Email + password login to `/admin` |
+| **Admin** | University transport coordinator (one person, possibly a deputy) | Edit timetable, publish/clear alerts, pause tracking, change passcode | **Admin passcode only** — no name or personal email ([D-017](DECISIONS.md#d-017)) |
 | **Tracker** | GPS device on the bus | Sends its position | Device secret key, no human login |
 
 ## 4. The route
@@ -65,12 +65,15 @@ one route.
 - Installable to home screen (PWA).
 
 **Admin page** (`/admin`, login required):
+- **Login:** a single "Admin passcode" field (separate from the student passcode). Stays logged in on her device
+  until she logs out or the session expires.
 - **Publish alert:** pick type (delay / cancellation / other), optional delay in minutes, optional affected
   departure(s), free-text message, optional expiry time → Publish.
 - **Clear alert** in one tap.
 - **Edit timetable:** simple editable table → Save.
 - **Pause tracking** switch (e.g. when the bus is rented out) with an optional automatic resume date/time.
-- **Change passcode** (then the registrar sends the new one to students).
+- **Change student passcode** (then the registrar sends the new one to students).
+- **Change admin passcode.**
 - Designed for a non-technical user on a phone or laptop; no back-end access needed.
 
 ### 5.2 Planned after the minimum version (if time allows)
@@ -88,6 +91,59 @@ one route.
 - Email notifications sent by the website ([D-014](DECISIONS.md#d-014)).
 - Storing any history of the bus's movements (see §9).
 - Multiple routes/buses in the interface (data model allows it later).
+- The university's logo or official branding, until written permission is given ([D-016](DECISIONS.md#d-016)).
+
+### 5.4 Error and status screens
+
+Every one of these has its own clear message (text in the strings file) and, where possible, says what still works
+and what to do. Details in [D-018](DECISIONS.md#d-018).
+
+**Student page — connection and loading**
+
+| Situation | What the student sees |
+|---|---|
+| Student is offline | "You're offline." Last saved timetable and alerts are still shown, with "saved at HH:MM". Map marker hidden. |
+| Back end unreachable / too slow | "Can't reach the bus service right now. Retrying…" Last saved data shown. Retries automatically. |
+| Map tiles fail to load | Timetable still works; map area says "Map unavailable". |
+| Page loading for the first time | Short loading state (no blank screen). |
+| JavaScript disabled / very old browser | Plain message explaining the site needs a modern browser. |
+| Page not found (wrong link) | Simple 404 page with a link back to the timetable. |
+
+**Student page — live bus position**
+
+| Situation | What the student sees |
+|---|---|
+| Position fresh (< 1 min old) | Bus marker + "Updated X s ago". |
+| Position 1–5 min old | Faded marker + "Last seen X min ago — live signal weak". |
+| No position for > 5 min during service hours | Marker hidden; "Live location unavailable right now. Timetable below is still valid." |
+| Outside service hours | "Bus not in service. Next departure: …" |
+| Tracking paused by admin | "Live tracking is unavailable today." (no reason given publicly) |
+| Device has no GPS fix yet (just switched on) | Treated like "no position". |
+
+**Student page — passcode**
+
+| Situation | What the student sees |
+|---|---|
+| Wrong passcode | "That passcode isn't right. Check the registrar's email." |
+| Too many attempts | "Too many attempts. Try again in X minutes." |
+| Passcode changed (saved one no longer works) | "The passcode has changed. Enter the new one from the registrar's email." |
+
+**Timetable**
+
+| Situation | What the student sees |
+|---|---|
+| No timetable entered yet / no departures today | "No departures scheduled today." |
+| Alert has expired | Removed automatically. |
+
+**Admin page**
+
+| Situation | What the admin sees |
+|---|---|
+| Wrong admin passcode / too many attempts | Same pattern as students. |
+| Session expired | "You've been logged out. Log in again." Unsaved edits kept on the page. |
+| Save failed (offline / server error) | "Not saved — check your connection and try again." Edits kept; nothing half-saved. |
+| Tracker offline during service hours | Warning banner: "Tracker hasn't reported for X min." |
+| Tracker battery low | Warning banner with battery level (once battery reporting exists). |
 
 ## 6. Architecture (proposed — [D-003](DECISIONS.md#d-003))
 
@@ -123,7 +179,10 @@ one route.
 | `departures` | The timetable | `id`, `stop_id`, `time`, `days` (e.g. Mon–Fri), `note` |
 | `alerts` | Delays / cancellations / notices | `id`, `type`, `message`, `delay_min`, `affects` (departures), `starts_at`, `expires_at`, `active` |
 | `bus_position` | **Latest position only** (one row, overwritten) | `lat`, `lng`, `speed`, `heading`, `battery`, `recorded_at` |
-| `settings` | One row of admin settings | `passcode_hash`, `tracking_paused`, `paused_until` |
+| `settings` | One row of admin settings | `passcode_hash` (student passcode), `tracking_paused`, `paused_until` |
+
+The admin login is a single Supabase Auth user with a **project email** (not hers) and the admin passcode as its
+password. The login page fills in the email itself, so she only types the passcode ([D-017](DECISIONS.md#d-017)).
 
 Access rules:
 - Everyone can **read** `stops`, `departures` and active `alerts` (see [D-013](DECISIONS.md#d-013) on whether these
@@ -135,8 +194,8 @@ Access rules:
 
 ## 8. GPS tracker
 
-**Chosen (proposed): LilyGO T-SIM7670G (ESP32-S3) with 18650 battery holder** ([D-015](DECISIONS.md#d-015)),
-from TinyTronics (NL), ~€45 per board.
+**Purchased: LilyGO T-SIM7670G (ESP32-S3) with 18650 battery holder** ([D-015](DECISIONS.md#d-015)),
+from TinyTronics (NL), with batteries, antennas and accessories. Set-up and firmware: the team's electronics member.
 
 | Property | Value |
 |---|---|
@@ -201,7 +260,8 @@ page code. Adding a language later means copying that file and translating it. S
 
 | When | Milestone |
 |---|---|
-| Week of 19 Oct | **Order tracker** (+ batteries, antennas if needed, enclosure) and SIM; collect stops/timetable; driver consent; DPO contact |
+| Week of 19 Oct | ✅ Tracker and parts ordered. Collect stops/timetable; driver consent; DPO contact |
+| Week of 26 Oct | Project email account; domain + hosting ([D-009](DECISIONS.md#d-009)); Supabase project |
 | Weeks of 26 Oct, 2 Nov | Student page: timetable + map with route (fake bus position); tracker firmware on the bench |
 | Week of 9 Nov | Supabase, admin page, alerts, passcode, pause switch |
 | Week of 16 Nov | Tracker connected end-to-end (or phone stand-in if the device is late) |
@@ -220,3 +280,17 @@ page code. Adding a language later means copying that file and translating it. S
 - [ ] Whether the timetable and alerts should also be behind the passcode ([D-013](DECISIONS.md#d-013))
 - [ ] Contact for the university's Data Protection Officer
 - [ ] Whether the university will fund / take ownership
+- [ ] Permission to use the university's name and/or logo
+
+## 14. Look and feel
+
+([D-016](DECISIONS.md#d-016))
+
+| Item | Value |
+|---|---|
+| Colours | Black `#000000`, white `#FFFFFF`, university maroon `#781432` (from the university's own website) |
+| Maroon use | Header, buttons, route line, bus marker, links. Maroon text only on white/light backgrounds (on black it is hard to read). |
+| Logo / icon | A simple bus pictogram (own design, not the university logo), used for the header, browser tab and home-screen icon |
+| Footer | "Student project — not an official university service" until the university adopts it |
+| Theme | Light theme for the minimum version |
+| Feel | Large text and tap targets, one column on phones, nothing hidden behind menus |
