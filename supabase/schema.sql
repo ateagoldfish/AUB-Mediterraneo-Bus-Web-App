@@ -64,7 +64,8 @@ create table public.bus_position (
   recorded_at timestamptz
 );
 
--- Wrong passcode attempts, kept 15 minutes, for brute-force protection.
+-- Wrong passcode attempts, kept 20 minutes, for brute-force protection (D-028).
+-- "client" is the visitor's network address — shared by everyone on the same Wi-Fi.
 create table public.passcode_attempts (
   client text not null,
   attempted_at timestamptz not null default now()
@@ -124,12 +125,15 @@ declare
   fails int;
   oldest timestamptz;
 begin
-  delete from passcode_attempts where attempted_at < now() - interval '15 minutes';
+  -- 30 wrong passcodes from one network within 10 minutes blocks that network until the
+  -- oldest of them is 10 minutes old. The limit is high because a whole dorm shares one
+  -- network; the admin can lift a block early (clear_passcode_blocks).
+  delete from passcode_attempts where attempted_at < now() - interval '20 minutes';
   select count(*), min(attempted_at) into fails, oldest
-    from passcode_attempts where client = caller and attempted_at > now() - interval '5 minutes';
-  if fails >= 5 then
+    from passcode_attempts where client = caller and attempted_at > now() - interval '10 minutes';
+  if fails >= 30 then
     return json_build_object('status', 'rate_limited',
-      'retry_after', ceil(extract(epoch from oldest + interval '5 minutes' - now())));
+      'retry_after', ceil(extract(epoch from oldest + interval '10 minutes' - now())));
   end if;
 
   select * into s from settings where id = 1;
@@ -188,6 +192,27 @@ begin
   if not is_admin() then raise exception 'not allowed' using errcode = '42501'; end if;
   if char_length(coalesce(new_passcode, '')) < 8 then raise exception 'passcode too short'; end if;
   update settings set student_passcode_hash = extensions.crypt(new_passcode, extensions.gen_salt('bf')) where id = 1;
+  delete from passcode_attempts where true;
+end;
+$$;
+
+-- How many networks are blocked right now for too many wrong passcodes.
+create function public.count_passcode_blocks() returns int
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not is_admin() then raise exception 'not allowed' using errcode = '42501'; end if;
+  return (select count(*) from (
+    select client from passcode_attempts
+    where attempted_at > now() - interval '10 minutes'
+    group by client having count(*) >= 30) blocked);
+end;
+$$;
+
+-- Lifts all blocks at once (e.g. a dorm's Wi-Fi got blocked by someone's mistakes).
+create function public.clear_passcode_blocks() returns void
+language plpgsql volatile security definer set search_path = public as $$
+begin
+  if not is_admin() then raise exception 'not allowed' using errcode = '42501'; end if;
   delete from passcode_attempts where true;
 end;
 $$;

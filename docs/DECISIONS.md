@@ -41,6 +41,9 @@
 | [D-025](#d-025) | Plain HTML/JS, no build step; demo mode until Supabase exists | Decided |
 | [D-026](#d-026) | Timetable: one `trips` table with times per stop | Decided |
 | [D-027](#d-027) | Position by polling; passcode checked in the database | Decided |
+| [D-028](#d-028) | Passcode limits per network, with an admin "Unblock now" | Decided |
+| [D-029](#d-029) | Written permissions and own-words text before launch | Open |
+| [D-030](#d-030) | Relative paths; free GitHub Pages preview for testing | Decided |
 
 ---
 
@@ -411,3 +414,43 @@
   tier (~400 students, mostly not all at once).
 - **Tested:** the security rules were checked against a local copy of the database (anonymous visitors, the admin,
   another logged-in account, wrong passcodes, rate limiting, pause, out-of-hours).
+
+<a id="d-028"></a>
+## D-028 — Passcode limits per network, with an admin "Unblock now"
+- **Date:** 2026-10-31 · **Status:** Decided (changes the limit from D-013)
+- **Problem found:** The first version blocked a network after **5** wrong passcodes in 5 minutes. A whole dorm shares
+  one Wi-Fi network (one internet address), so one student mistyping five times would have blocked **every student
+  in that building**. There was also no way to undo a block early.
+- **Decision:**
+  - The limit is **30 wrong passcodes per network within 10 minutes**; the block then lasts until the oldest of those
+    attempts is 10 minutes old. Real users will practically never reach this, while guessing a long passcode stays
+    hopeless (at most ~4,000 guesses a day per network).
+  - The admin page shows how many networks are blocked and has an **Unblock now** button (`clear_passcode_blocks`).
+  - Changing the student passcode also clears all blocks.
+  - **Admin login:** limited by Supabase's own login protection. If the admin locks herself out she waits a few
+    minutes, or anyone with the Supabase dashboard can reset the password (SETUP.md).
+
+<a id="d-029"></a>
+## D-029 — Written permissions and own-words text before launch
+- **Date:** 2026-10-31 · **Status:** Open
+- **Context:** The dean agreed verbally. Rather than rely on that, the team wants written permission from the university
+  and the driver(s), plus a light privacy notice and disclaimer. The team also wants every longer piece of text on the
+  site written in their own words (the same standard as their other project).
+- **Plan:**
+  - Draft short permission documents (university, driver) and a privacy notice — list in SPEC §13.
+  - All site text is already in one file, `src/strings/en.json`. The team rewrites the longer texts; Claude puts them
+    into the file. Short labels ("Save", "Log out", day names) stay as they are unless the team wants changes.
+- **Status of the drafts:** not started — to do once the questions to the university are answered.
+
+<a id="d-030"></a>
+## D-030 — Relative paths; free GitHub Pages preview for testing
+- **Date:** 2026-10-31 · **Status:** Decided
+- **Context:** The team's laptop is too old to run things locally comfortably, and the Cloudflare account can't be
+  created until the project email exists.
+- **Decision:**
+  - All links between the site's files are **relative** (e.g. `src/css/style.css`, not `/src/css/style.css`), so the
+    site works both at the top of a domain (`dormshuttle.com`) and inside a folder.
+  - Until Cloudflare is set up, the site can be previewed for free with **GitHub Pages** (the repository is public):
+    `https://ateagoldfish.github.io/AUB-Mediterraneo-Bus-Web-App/`. It runs in demo mode only. Steps in SETUP.md.
+- **Note:** The preview address contains "AUB" (from the repository name). It is only for the team's testing and is
+  hidden from search engines; the public site will be `dormshuttle.com` (D-019).

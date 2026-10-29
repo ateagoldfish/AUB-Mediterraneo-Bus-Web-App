@@ -6,22 +6,22 @@
   <title>Admin · Dorm Shuttle</title>
   <meta name="theme-color" content="#840132">
   <meta name="robots" content="noindex, nofollow">
-  <link rel="icon" href="/src/img/icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/src/css/style.css">
-  <script type="module" src="/src/js/admin.js"></script>
+  <link rel="icon" href="../src/img/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../src/css/style.css">
+  <script type="module" src="../src/js/admin.js"></script>
 </head>
 <body data-i18n-title="admin.title">
   <header class="site-header">
     <div class="inner">
-      <a class="brand" href="/admin/">
-        <img src="/src/img/bus.svg" alt="">
+      <a class="brand" href="./">
+        <img src="../src/img/bus.svg" alt="">
         <span>
           <span class="brand-name" data-i18n="app.name"></span><br>
           <span class="brand-tagline" data-i18n="admin.title"></span>
         </span>
       </a>
       <div class="header-actions">
-        <a class="btn btn-light" href="/" target="_blank" rel="noopener" data-i18n="admin.viewSite"></a>
+        <a class="btn btn-light" href="../" target="_blank" rel="noopener" data-i18n="admin.viewSite"></a>
         <button id="logout" class="btn btn-light" type="button" data-i18n="admin.logout" hidden></button>
       </div>
     </div>
@@ -30,6 +30,7 @@
   <main>
     <noscript><div class="banner banner-conn">This page needs JavaScript and an up-to-date browser.</div></noscript>
     <div id="admin-msg" class="banner banner-conn" role="alert" hidden></div>
+    <p id="admin-loading" class="muted" data-i18n="app.loading"></p>
 
     <div id="login" class="card page-narrow" hidden>
       <h1 style="font-size:1.3rem;margin-bottom:12px" data-i18n="admin.loginTitle"></h1>
@@ -138,6 +139,7 @@
           <button id="save-trips" class="btn" type="button" data-i18n="admin.tt.save"></button>
           <button id="clear-trips" class="btn btn-outline btn-small" type="button" data-i18n="admin.tt.clearAll"></button>
           <div id="trips-msg" class="form-msg" role="alert" hidden></div>
+          <div id="trips-unsaved" class="form-msg form-error" data-i18n="admin.tt.unsaved" hidden></div>
         </div>
       </section>
 
@@ -147,6 +149,11 @@
         <div class="card">
           <h2 data-i18n="admin.pass.student"></h2>
           <p class="muted small" data-i18n="admin.pass.studentHelp"></p>
+          <div class="admin-blocks">
+            <p id="blocks-text" class="small"></p>
+            <button id="clear-blocks" class="btn btn-outline btn-small" type="button" data-i18n="admin.blocks.clear" hidden></button>
+            <p id="blocks-msg" class="form-msg" role="alert" hidden></p>
+          </div>
           <form class="pass-form" data-kind="student" novalidate>
             <div class="form-row">
               <div class="field"><label for="student-new" data-i18n="admin.pass.new"></label><input id="student-new" type="text" autocomplete="off"></div>

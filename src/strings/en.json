@@ -1,7 +1,6 @@
 {
   "app.name": "Dorm Shuttle",
   "app.tagline": "Campus ⇄ Dorms",
-  "app.description": "Live location, timetable and alerts for the campus–dorms shuttle bus.",
   "app.disclaimer": "Student project — not an official university service.",
   "app.privacyLink": "Privacy",
   "app.loading": "Loading…",
@@ -24,7 +23,6 @@
   "alert.affectsAll": "Affects all remaining runs today",
 
   "map.unavailable": "Map unavailable right now. The timetable below still works.",
-  "map.stop": "Stop",
   "map.bus": "Bus",
   "map.attribution": "© OpenStreetMap contributors",
 
@@ -43,7 +41,7 @@
   "pass.submit": "Show the bus",
   "pass.wrong": "That passcode isn't right. Check the registrar's email.",
   "pass.changed": "The passcode has changed. Enter the new one from the registrar's email.",
-  "pass.tooMany": "Too many attempts. Try again in {min} min.",
+  "pass.tooMany": "Too many wrong passcodes from this network. Try again in {min} min.",
   "pass.forget": "Forget passcode on this device",
 
   "next.toCampus": "To campus",
@@ -60,13 +58,11 @@
   "tt.none": "No fixed timetable at the moment. Use the live map to see where the bus is.",
   "tt.noneToday": "No runs scheduled today.",
   "tt.otherDays": "Other days",
-  "tt.via": "via {stops}",
   "tt.direction.to_campus": "To campus",
   "tt.direction.to_dorms": "To dorms",
 
   "hours.closed": "No service",
   "hours.none": "Service hours have not been set.",
-  "hours.today": "Today",
 
   "day.0": "Sunday",
   "day.1": "Monday",
@@ -100,7 +96,6 @@
   "demo.hint": "Student passcode: {student} · Admin page: /admin, passcode: {admin}",
   "demo.reset": "Reset demo data",
 
-  "nojs": "This site needs JavaScript and an up-to-date browser.",
 
   "notfound.title": "Page not found",
   "notfound.text": "That page doesn't exist.",
@@ -120,6 +115,9 @@
   "admin.sessionExpired": "You've been logged out. Log in again — your unsaved changes are still on the page.",
   "admin.saveFailed": "Not saved — check your connection and try again. Your changes are still on the page.",
   "admin.saved": "Saved.",
+  "admin.loadFailed": "Can't reach the server. Retrying every 30 seconds…",
+  "admin.offline": "You're offline. Changes can't be saved until the connection is back.",
+  "admin.loginNetwork": "Can't reach the server. Check your connection and try again.",
   "admin.saving": "Saving…",
   "admin.viewSite": "View student page",
 
@@ -176,6 +174,7 @@
   "admin.tt.duplicate": "Duplicate",
   "admin.tt.delete": "Delete",
   "admin.tt.save": "Save timetable",
+  "admin.tt.unsaved": "You have unsaved changes — press “Save timetable”.",
   "admin.tt.clearAll": "Clear whole timetable",
   "admin.tt.confirmClear": "Delete every run in the timetable?",
   "admin.tt.filter": "Show",
@@ -194,5 +193,8 @@
   "admin.pass.save": "Change passcode",
   "admin.pass.tooShort": "Use at least {n} characters — a few words works well.",
   "admin.pass.mismatch": "The two passcodes don't match.",
-  "admin.pass.changed": "Passcode changed."
+  "admin.pass.changed": "Passcode changed.",
+  "admin.blocks.none": "No networks are blocked for wrong passcodes.",
+  "admin.blocks.some": "{n} network(s) blocked after too many wrong passcodes (for example a dorm's Wi-Fi). Blocks lift by themselves within 10 minutes.",
+  "admin.blocks.clear": "Unblock now"
 }

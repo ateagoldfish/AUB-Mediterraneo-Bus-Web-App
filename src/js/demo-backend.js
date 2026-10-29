@@ -60,13 +60,20 @@ async function server(fn) {
 const activeAlerts = (state) => state.alerts.filter((a) => !a.expires_at || new Date(a.expires_at) > new Date());
 const isPaused = (state) => state.paused && (!state.paused_until || new Date(state.paused_until) > new Date());
 
-// Simple brute-force protection, as on the server: 5 wrong tries -> wait 5 minutes.
+// Brute-force protection, as on the server (D-028): students get 30 wrong tries per
+// 10 minutes; the admin login 10 per 5 minutes (the real one uses Supabase's own limit).
+const LIMITS = { student: { tries: 30, minutes: 10 }, admin: { tries: 10, minutes: 5 } };
+
+function recentAttempts(state, kind) {
+  const since = Date.now() - LIMITS[kind].minutes * 60 * 1000;
+  return state.attempts.filter((a) => a.kind === kind && a.at > since);
+}
+
 function checkRateLimit(state, kind) {
-  const since = Date.now() - 5 * 60 * 1000;
-  state.attempts = state.attempts.filter((a) => a.at > since);
-  const mine = state.attempts.filter((a) => a.kind === kind);
-  if (mine.length >= 5) {
-    throw new ApiError('rate_limited', { retryAfter: Math.ceil((mine[0].at + 5 * 60 * 1000 - Date.now()) / 1000) });
+  const mine = recentAttempts(state, kind);
+  if (mine.length >= LIMITS[kind].tries) {
+    const retryAfter = Math.ceil((mine[0].at + LIMITS[kind].minutes * 60 * 1000 - Date.now()) / 1000);
+    throw new ApiError('rate_limited', { retryAfter });
   }
 }
 
@@ -145,6 +152,7 @@ export const demoBackend = {
         ? { recorded_at: trackerPosition(state).recorded_at, battery: 76 }
         : { recorded_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString(), battery: 76 },
       in_service: inService(state),
+      blocked_networks: recentAttempts(state, 'student').length >= LIMITS.student.tries ? 1 : 0,
     })),
 
     publishAlert: (alert) => adminCall((state) => {
@@ -163,6 +171,8 @@ export const demoBackend = {
     }),
 
     setStudentPasscode: (code) => adminCall((state) => { state.student_passcode = code; }),
+
+    clearPasscodeBlocks: () => adminCall((state) => { state.attempts = state.attempts.filter((a) => a.kind !== 'student'); }),
 
     setAdminPasscode: (code) => adminCall((state) => { state.admin_passcode = code; }),
   },

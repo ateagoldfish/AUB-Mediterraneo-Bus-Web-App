@@ -4,7 +4,7 @@
 let strings = {};
 
 export async function loadStrings(lang = 'en') {
-  const res = await fetch(`/src/strings/${lang}.json`);
+  const res = await fetch(new URL(`../strings/${lang}.json`, import.meta.url));
   strings = await res.json();
   document.documentElement.lang = lang;
   applyStrings(document);

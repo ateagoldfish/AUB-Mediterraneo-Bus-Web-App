@@ -2,14 +2,14 @@
   "name": "Dorm Shuttle",
   "short_name": "Shuttle",
   "description": "Live location, timetable and alerts for the campus–dorms shuttle bus.",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f8fafc",
   "theme_color": "#840132",
   "icons": [
-    { "src": "/src/img/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/src/img/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "/src/img/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+    { "src": "src/img/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "src/img/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "src/img/icon.svg", "sizes": "any", "type": "image/svg+xml" }
   ]
 }

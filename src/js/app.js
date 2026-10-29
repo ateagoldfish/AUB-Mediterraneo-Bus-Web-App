@@ -9,6 +9,7 @@ import { todaysRuns, nextRun, tripsForDay, stopsInOrder, firstDeparture } from '
 const DATA_KEY = 'dormshuttle-data';
 const PASS_KEY = 'dormshuttle-passcode';
 const PASS_OK_KEY = 'dormshuttle-passcode-worked';
+const BUS_ICON = new URL('../img/bus.svg', import.meta.url).href;
 
 const $ = (id) => document.getElementById(id);
 
@@ -256,7 +257,7 @@ function renderStops() {
 
 function showBus(lat, lng, weak) {
   if (!state.map) return;
-  const html = `<div class="bus-pin${weak ? ' weak' : ''}"><img src="/src/img/bus.svg" alt=""></div>`;
+  const html = `<div class="bus-pin${weak ? ' weak' : ''}"><img src="${BUS_ICON}" alt=""></div>`;
   const icon = L.divIcon({ className: '', html, iconSize: [40, 40], iconAnchor: [20, 20] });
   if (!state.busMarker) {
     state.busMarker = L.marker([lat, lng], { icon, title: t('map.bus'), zIndexOffset: 1000, keyboard: false }).addTo(state.map);
@@ -418,7 +419,7 @@ async function start() {
   window.addEventListener('online', () => { refreshData(); pollPosition(); });
   window.addEventListener('offline', () => { state.conn = 'offline'; renderConnection(); pollPosition(); });
 
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
 start();

@@ -22,6 +22,17 @@ problems (weak signal, server down, outside service hours…).
 
 In demo mode everything is stored only in that browser. "Reset demo data" starts over.
 
+## 1b. Or: preview it on any phone or laptop with GitHub Pages (no installing anything)
+
+Works right now, without the project email. The site runs in demo mode.
+
+1. On GitHub, open the repository → **Settings → Pages**.
+2. **Source: Deploy from a branch**. **Branch: `main`**, folder **`/ (root)`** → **Save**.
+3. After a minute or two the site is at <https://ateagoldfish.github.io/AUB-Mediterraneo-Bus-Web-App/>
+   (the admin page: add `admin/` to the end). Every push to `main` updates it.
+
+When the real site is on Cloudflare, switch this off again (same page → Source: None) so there is only one copy.
+
 ## 2. Put it online with Cloudflare Pages (demo mode is fine for this)
 
 1. Log in to Cloudflare with the project email.
@@ -93,6 +104,9 @@ In demo mode everything is stored only in that browser. "Reset demo data" starts
 - **Supabase free projects pause after a week with no activity** (e.g. over a holiday if the tracker is off). Unpause
   it from the dashboard; nothing is lost.
 - **Changing the student passcode** takes effect immediately; students see "The passcode has changed".
-- **Forgotten admin passcode:** Supabase → Authentication → Users → the admin user → reset/change password.
+- **Forgotten admin passcode, or locked out after too many tries:** wait a few minutes, or Supabase →
+  Authentication → Users → the admin user → change password.
+- **Students blocked after wrong passcodes** (e.g. a whole dorm's Wi-Fi): the admin page → Passcodes →
+  **Unblock now**. Blocks also lift by themselves within 10 minutes.
 - **Handover:** add the university as owners of the Supabase organisation, the Cloudflare account and the GitHub
   repository (SPEC §10).

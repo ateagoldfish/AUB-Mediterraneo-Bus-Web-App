@@ -116,12 +116,13 @@ export const supabaseBackend = {
     },
 
     async getState() {
-      const [stops, trips, alerts, settings, position] = await Promise.all([
+      const [stops, trips, alerts, settings, position, blocked] = await Promise.all([
         adminRequest('/rest/v1/stops?select=*&order=sort'),
         adminRequest('/rest/v1/trips?select=*'),
         adminRequest('/rest/v1/alerts?select=*&order=created_at.desc'),
         adminRequest('/rest/v1/settings?select=service_hours,paused,paused_until&id=eq.1'),
         adminRequest('/rest/v1/bus_position?select=recorded_at,battery&id=eq.1'),
+        rpc('count_passcode_blocks', {}, await token()),
       ]);
       const s = settings[0] ?? {};
       const paused = s.paused && (!s.paused_until || new Date(s.paused_until) > new Date());
@@ -131,6 +132,7 @@ export const supabaseBackend = {
         paused,
         paused_until: paused ? s.paused_until : null,
         tracker: position[0] ?? null,
+        blocked_networks: blocked ?? 0,
       };
     },
 
@@ -150,6 +152,8 @@ export const supabaseBackend = {
     }),
 
     setStudentPasscode: async (code) => rpc('set_student_passcode', { new_passcode: code }, await token()),
+
+    clearPasscodeBlocks: async () => rpc('clear_passcode_blocks', {}, await token()),
 
     setAdminPasscode: (code) => adminRequest('/auth/v1/user', { method: 'PUT', body: { password: code } }),
   },

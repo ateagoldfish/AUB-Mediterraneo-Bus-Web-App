@@ -4,7 +4,7 @@
 > It only ever describes the **present state**. When something changes, edit it in place; the reasoning and history
 > belong in [`DECISIONS.md`](DECISIONS.md). Items marked **(proposed)** are not yet confirmed — see the linked decision.
 
-_Last updated: 2026-10-30_
+_Last updated: 2026-10-31_
 
 ---
 
@@ -152,11 +152,19 @@ and what to do. Details in [D-018](DECISIONS.md#d-018).
 
 | Situation | What the admin sees |
 |---|---|
-| Wrong admin passcode / too many attempts | Same pattern as students. |
-| Session expired | "You've been logged out. Log in again." Unsaved edits kept on the page. |
+| Page loading | "Loading…" until the login form or the admin panel is ready. |
+| Wrong admin passcode | "That admin passcode isn't right." |
+| Too many admin login attempts | "Too many attempts. Try again in X min." Lifts by itself (Supabase's own limit); if needed, the password can be reset in the Supabase dashboard (SETUP.md). |
+| Can't reach the server when logging in | "Can't reach the server. Check your connection and try again." |
+| Can't reach the server when loading | Banner "Can't reach the server. Retrying every 30 seconds…"; the panel loads by itself once the server answers. |
+| Admin goes offline | Banner "You're offline. Changes can't be saved until the connection is back." Clears when back online. |
+| Session expired | "You've been logged out. Log in again." Login form appears above the panel; unsaved edits stay on the page. |
 | Save failed (offline / server error) | "Not saved — check your connection and try again." Edits kept; nothing half-saved. |
+| Unsaved timetable changes | "You have unsaved changes — press “Save timetable”." The browser warns before leaving the page. |
+| Students' network blocked by wrong passcodes | "N network(s) blocked…" with an **Unblock now** button ([D-028](DECISIONS.md#d-028)). |
 | Tracker offline during service hours | Warning banner: "Tracker hasn't reported for X min." |
-| Tracker battery low | Warning banner with battery level (once battery reporting exists). |
+| Tracker battery low | Warning banner with battery level. |
+| Page text fails to load | Plain message asking to check the connection and reload (the only text not in the strings file, since that file is what failed). |
 
 ## 6. Architecture ([D-003](DECISIONS.md#d-003), [D-025](DECISIONS.md#d-025))
 
@@ -241,8 +249,11 @@ Requirements that still apply to the setup:
 - **The live position is not public.** It is shown only to people who enter the shared passcode, distributed by the
   registrar ([D-013](DECISIONS.md#d-013)). The passcode is checked on the server, not in the page, so the position can't
   be read by bypassing the page.
-- The passcode is long enough not to be guessed (e.g. three words or 8+ characters), attempts are rate-limited, and the
-  admin can change it at any time (e.g. each semester or if it leaks).
+- The passcode is long enough not to be guessed (e.g. three words or 8+ characters), and the admin can change it at
+  any time (e.g. each semester or if it leaks).
+- Wrong passcodes are limited **per network**: 30 wrong tries within 10 minutes blocks that network for up to
+  10 minutes. Because a whole dorm shares one Wi-Fi network, the admin page shows any blocks and can lift them at once
+  ([D-028](DECISIONS.md#d-028)).
 - The bus's position is treated as the **driver's personal data**: consent from the driver(s) is required before going
   live.
 - **Only the latest position is stored**; no movement history.
@@ -289,6 +300,31 @@ page code. Adding a language later means copying that file and translating it. S
 
 ## 13. Facts still to collect
 
+### Questions for transport staff (open since 2026-10-30)
+
+- [ ] **Vehicle:** Does the tracker go on the AUB **electric bus**? Does the **coach** still run (it used to at
+      08:30 and 16:20 Mon–Thu)?
+- [ ] **Weekends:** Do the **Old Town** weekend runs still happen? If so, where exactly does the bus stop in Old Town?
+- [ ] **Service hours:** Which days does the bus run, and what time are the first and last runs?
+
+### Permissions in writing (to ask about)
+
+The dean agreed verbally (2026-10-22). Before going live, get written agreement — even a short signed note or email
+— so there is a record. Draft documents to prepare (D-029):
+
+- [ ] **University** (dean / Data Protection Officer): approval of the project as described — passcode-protected
+      live location, no student data, only the latest position stored, tracking only in service hours, pause
+      switch for rentals.
+- [ ] **Driver(s):** consent to a GPS tracker on the bus they drive — what is tracked, when, who can see it, that no
+      history is kept, and that they can ask questions or withdraw.
+- [ ] **Privacy notice** for the site (a draft is already at `privacy.html`; the team will rewrite it in their own
+      words).
+- [ ] **Disclaimer:** "student project, not an official university service; times are a guide" — currently in the
+      footer.
+- [ ] **Bus icon / branding:** our own bus icon is tentative until the team agrees (D-016).
+
+### Other facts
+
 - [ ] Which vehicle carries the tracker (electric bus?) and whether the coach still runs
 - [ ] Old Town stop location, and whether weekend trips still run
 - [ ] Service hours (days, first and last run)
@@ -310,7 +346,7 @@ page code. Adding a language later means copying that file and translating it. S
 |---|---|
 | Colours | Black `#000000`, white `#FFFFFF`, university maroon `#840132` (from the website's stylesheet, [D-020](DECISIONS.md#d-020)); dark maroon `#5A011F` for hover/pressed; light tint `#FDF2F5` for highlighted rows; slate greys for secondary text |
 | Maroon use | Header, buttons, stop markers, bus marker, links. Maroon text only on white/light backgrounds (on black it is hard to read). |
-| Logo / icon | A simple bus pictogram (own design, not the university logo), used for the header, browser tab and home-screen icon |
+| Logo / icon | A simple bus pictogram (own design, not the university logo), used for the header, browser tab and home-screen icon — **tentative**, the team will decide |
 | Footer | "Student project — not an official university service" until the university adopts it |
 | Font | **Inter** (same as the university website), stored with the site rather than loaded from Google ([D-020](DECISIONS.md#d-020)) |
 | Style | Like aubmed.ac.cy: maroon header bar, white rounded cards with soft shadow, pill-shaped buttons, small letter-spaced uppercase section labels |

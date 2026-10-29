@@ -14,6 +14,8 @@ const DAYS_MON_FIRST = [1, 2, 3, 4, 5, 6, 0];
 
 let adminState = null;   // last state loaded from the server
 let editTrips = [];      // the timetable as being edited (saved only on "Save timetable")
+let tripsDirty = false;  // true when editTrips has changes that aren't saved yet
+let bannerKind = null;   // what the top banner is currently showing
 
 function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
@@ -60,14 +62,26 @@ async function save(form, button, action, okText = t('admin.saved')) {
   }
 }
 
+// The banner at the top: connection problems and "logged out". kind lets a later
+// success clear only the message it fixes.
+function setBanner(text, kind) {
+  const banner = $('admin-msg');
+  banner.textContent = text;
+  banner.hidden = !text;
+  bannerKind = text ? kind : null;
+}
+
+function clearBanner(kind) {
+  if (bannerKind === kind) setBanner('', null);
+}
+
 // ---------- Login ----------
 
 function showLogin(message = '') {
+  $('admin-loading').hidden = true;
   $('login').hidden = false;
   $('logout').hidden = true;
-  const msg = $('admin-msg');
-  msg.textContent = message;
-  msg.hidden = !message;
+  setBanner(message, 'session');
   $('login-passcode').focus();
 }
 
@@ -83,13 +97,14 @@ function setUpLogin() {
       await api.admin.login(input.value);
       input.value = '';
       $('login').hidden = true;
-      $('admin-msg').hidden = true;
+      clearBanner('session');
       $('logout').hidden = false;
-      await reload(true);
+      // If the panel is already on screen (logged out mid-edit), keep her unsaved edits.
+      await reload($('panel').hidden);
     } catch (err) {
       error.textContent = err.code === 'wrong' ? t('admin.loginWrong')
         : err.code === 'rate_limited' ? t('admin.loginTooMany', { min: Math.max(1, Math.ceil(err.retryAfter / 60)) })
-          : t('admin.saveFailed');
+          : t('admin.loginNetwork');
       error.hidden = false;
     } finally {
       button.disabled = false;
@@ -107,13 +122,13 @@ async function reload(first = false) {
   try {
     adminState = await api.admin.getState();
   } catch (err) {
+    $('admin-loading').hidden = true;
     if (err.code === 'session') showLogin(first ? '' : t('admin.sessionExpired'));
-    else {
-      $('admin-msg').textContent = t('admin.saveFailed');
-      $('admin-msg').hidden = false;
-    }
+    else setBanner(navigator.onLine ? t('admin.loadFailed') : t('admin.offline'), 'connection');
     return;
   }
+  clearBanner('connection');
+  $('admin-loading').hidden = true;
   $('panel').hidden = false;
   $('logout').hidden = false;
   if (first) {
@@ -127,6 +142,15 @@ async function reload(first = false) {
   renderAlerts();
   renderAffects();
   renderPause();
+  renderBlocks();
+}
+
+// ---------- Passcode blocks (D-028) ----------
+
+function renderBlocks() {
+  const n = adminState.blocked_networks ?? 0;
+  $('blocks-text').textContent = n ? t('admin.blocks.some', { n }) : t('admin.blocks.none');
+  $('clear-blocks').hidden = !n;
 }
 
 // ---------- Tracker status ----------
@@ -388,15 +412,21 @@ function tripEditor(trip, number) {
           onclick: () => {
             const copy = { ...structuredClone(trip), id: crypto.randomUUID() };
             editTrips.splice(editTrips.indexOf(trip) + 1, 0, copy);
+            setTripsDirty(true);
             renderTrips();
           },
         }, t('admin.tt.duplicate')),
         el('button', {
           class: 'btn btn-outline btn-small', type: 'button',
-          onclick: () => { editTrips = editTrips.filter((x) => x !== trip); renderTrips(); },
+          onclick: () => { editTrips = editTrips.filter((x) => x !== trip); setTripsDirty(true); renderTrips(); },
         }, t('admin.tt.delete')))),
   );
   return row;
+}
+
+function setTripsDirty(dirty) {
+  tripsDirty = dirty;
+  $('trips-unsaved').hidden = !dirty;
 }
 
 function renderTrips() {
@@ -436,11 +466,18 @@ function validateTrips() {
 }
 
 function setUpTimetable() {
+  // Any typing or ticking inside the editor counts as an unsaved change.
+  $('trip-list').addEventListener('input', () => setTripsDirty(true));
+  $('trip-list').addEventListener('change', () => setTripsDirty(true));
+  // Warn before leaving the page with unsaved timetable changes.
+  window.addEventListener('beforeunload', (event) => { if (tripsDirty) event.preventDefault(); });
+
   $('add-trip').addEventListener('click', () => {
     const trip = newTrip();
     const filter = $('tt-filter').value;
     if (filter !== 'all') trip.days = [Number(filter)];
     editTrips.push(trip);
+    setTripsDirty(true);
     renderTrips();
     $(`trip-${trip.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
@@ -459,12 +496,13 @@ function setUpTimetable() {
       return;
     }
     const ok = await save(box, event.target, () => api.admin.saveTimetable(editTrips));
-    if (ok) { sortTrips(); renderTrips(); }
+    if (ok) { setTripsDirty(false); sortTrips(); renderTrips(); }
   });
 
   $('clear-trips').addEventListener('click', () => {
     if (!confirm(t('admin.tt.confirmClear'))) return;
     editTrips = [];
+    setTripsDirty(true);
     renderTrips();
   });
 }
@@ -491,17 +529,27 @@ function setUpPasscodeForms() {
 // ---------- Start ----------
 
 async function start() {
-  await loadStrings();
+  try {
+    await loadStrings();
+  } catch {
+    // The text file itself couldn't load, so this one message can't come from it.
+    $('admin-loading').textContent = 'Can’t load the page text. Check your connection and reload.';
+    return;
+  }
   setUpLogin();
   setUpAlertForm();
   setUpPauseForm();
   setUpHoursForm();
   setUpTimetable();
   setUpPasscodeForms();
+  $('clear-blocks').addEventListener('click', (event) => save($('blocks-msg'), event.target, () => api.admin.clearPasscodeBlocks()));
+  window.addEventListener('offline', () => setBanner(t('admin.offline'), 'connection'));
+  window.addEventListener('online', () => { if (api.admin.hasSession() && $('login').hidden) reload($('panel').hidden); });
+
   if (api.admin.hasSession()) await reload(true);
   else showLogin();
-  // Keep the tracker status and alert list current while the page is open.
-  setInterval(() => { if (!$('panel').hidden && $('login').hidden) reload(); }, 30000);
+  // Keep the tracker status and alert list current, and retry if the server couldn't be reached.
+  setInterval(() => { if (api.admin.hasSession() && $('login').hidden) reload($('panel').hidden); }, 30000);
 }
 
 start();
