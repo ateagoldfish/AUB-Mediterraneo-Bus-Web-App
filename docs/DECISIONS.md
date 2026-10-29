@@ -33,7 +33,10 @@
 | [D-017](#d-017) | Admin logs in with a passcode only | Decided |
 | [D-018](#d-018) | Every failure has its own clear screen | Decided |
 | [D-019](#d-019) | Cloudflare + dormshuttle.com, under a project Gmail | Decided |
-| [D-020](#d-020) | Visual style follows aubmed.ac.cy | Proposed |
+| [D-020](#d-020) | Visual style follows aubmed.ac.cy | Decided |
+| [D-021](#d-021) | No route line on the map — route isn't fixed | Decided |
+| [D-022](#d-022) | Site works without a timetable; admin sets service hours | Decided |
+| [D-023](#d-023) | Log only stop arrival times, to help build a timetable? | Open |
 
 ---
 
@@ -305,7 +308,8 @@
 
 <a id="d-020"></a>
 ## D-020 — Visual style follows aubmed.ac.cy
-- **Date:** 2026-10-29 · **Status:** Proposed
+- **Date:** 2026-10-29 · **Status:** Decided — colour `#840132` (the team's `#781432` was picked from a phone
+  screenshot, so slightly off)
 - **Proposal:** Match the look of the university website so the site feels familiar: Inter font, maroon header bar,
   white rounded cards, pill-shaped buttons, small letter-spaced uppercase section labels, slate-grey secondary text.
 - **Colour question:** the website's stylesheet actually uses **`#840132`** as its main maroon (with `#5A011F` darker
@@ -315,3 +319,35 @@
 - **Font hosting:** Inter is free (open licence). It is stored with our site instead of loaded from Google Fonts,
   because loading Google Fonts sends each visitor's IP address to Google, which EU courts have treated as a GDPR issue.
 - **Not copied:** logo, photos, the university name as a title (D-016).
+
+<a id="d-021"></a>
+## D-021 — No route line on the map — route isn't fixed
+- **Date:** 2026-10-29 · **Status:** Decided
+- **Context:** The roads the bus takes depend on the driver.
+- **Decision:** The map shows the 3 stops and the live bus, but no drawn route. Students mainly need "where is the bus
+  now, and how far is it from my stop"; a drawn route that the bus doesn't follow would be misleading.
+- **Effect:** Saves the job of drawing the route. Any arrival estimate (later) is based on distance to the stop, not
+  on a route.
+
+<a id="d-022"></a>
+## D-022 — Site works without a timetable; admin sets service hours
+- **Date:** 2026-10-29 · **Status:** Decided
+- **Context:** The university is currently running the bus without a fixed timetable; past schedules changed too
+  often.
+- **Decision:**
+  - The timetable becomes **optional**. When the admin has entered one, it is shown with next departures. When not,
+    the page leads with the live map and the service hours.
+  - **Service hours** (days + start/end times) are a separate admin setting. They decide when the live position is
+    shown (D-005), so the privacy rule no longer depends on having a timetable.
+  - Alerts still work without a timetable (e.g. "No bus this afternoon", "Running late").
+- **Why:** The live map is most valuable precisely when there is no reliable timetable.
+
+<a id="d-023"></a>
+## D-023 — Log only stop arrival times, to help build a timetable?
+- **Date:** 2026-10-29 · **Status:** Open
+- **Idea:** Instead of storing the bus's path (ruled out by D-010), record only **when the bus arrives at each stop**
+  (e.g. "Dorm Anavargos, 08:12"). After a few weeks this shows when the bus actually runs, which could help the
+  university set a realistic timetable.
+- **Privacy:** Much less detailed than a movement history, but still information about the driver's working pattern.
+  Needs the driver's agreement and the DPO's OK; keep for a limited time (e.g. one semester).
+- **Not in the minimum version.** Decide after launch.

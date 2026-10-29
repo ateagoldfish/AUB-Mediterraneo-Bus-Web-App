@@ -43,14 +43,15 @@ It must be usable long-term and be something the university could take over (see
 | Routes | **1** |
 | Stops | **3** — see table below |
 | Order of stops | _to collect_ |
-| Timetable | _to collect_ (fixed daily schedule; may differ by weekday/weekend — _to confirm_) |
-| Route path | Drawn by hand once (e.g. on geojson.io) and stored as a GeoJSON file |
+| Timetable | **None at the moment** — the university is running without a fixed timetable. The site must work with or without one ([D-022](DECISIONS.md#d-022)). |
+| Route path | **Not fixed** — the driver chooses the roads. No route line is drawn; the map shows the stops and the live bus ([D-021](DECISIONS.md#d-021)). |
+| Service hours | Set by the admin (e.g. Mon–Fri 07:00–21:00), independent of the timetable ([D-022](DECISIONS.md#d-022)) — _to collect_ |
 
 | Stop | Coordinates (lat, lng) | Source |
 |---|---|---|
-| University — AUB Mediterraneo, Pafos | 34.76775, 32.41673 | Google Maps pin (exact pick-up point: _to confirm_) |
-| Dorms — "AUB Dorms Anavargos" | 34.80034, 32.45207 | Google Maps pin (exact pick-up point: _to confirm_) |
-| Second dorm location | _to collect_ — may be the same site as Anavargos | |
+| University — AUB Mediterraneo, Pafos | 34.767469, 32.417171 | Where the bus parks (team visit) |
+| Dorms — Anavargos | 34.800635, 32.451972 | Where the bus parks (team visit) |
+| Dorms — second location (name _to confirm_) | 34.776953, 32.434246 | Approximate bus stop (asked on site); building at 34.776984, 32.434626 |
 
 The data model still allows more stops, trips or routes later without a rebuild, but the interface is designed for
 one route.
@@ -61,9 +62,10 @@ one route.
 
 **Student page** (single page, mobile-first):
 - Alert banner at the top when an alert is active (e.g. "Delayed ~15 min", "08:30 departure cancelled").
-- **Next departure** from each stop, highlighted.
-- Full timetable for today (expandable to other days, if the schedule varies by day).
-- Map with route line and the 3 stops.
+- **Next departure** from each stop, highlighted — *only when a timetable has been entered*.
+- Full timetable for today (expandable to other days, if the schedule varies by day) — *only when a timetable has
+  been entered*. Without one, the page leads with the map and shows the service hours instead.
+- Map with the 3 stops (no route line — [D-021](DECISIONS.md#d-021)).
 - **Live bus marker** (with "last updated X s ago"), shown only after the student enters the passcode. The browser
   remembers the passcode, so it is entered once per device (until the passcode changes).
 - When no recent position is available (outside service hours, tracking paused, device offline), the marker is hidden
@@ -78,13 +80,15 @@ one route.
 - **Clear alert** in one tap.
 - **Edit timetable:** simple editable table → Save.
 - **Pause tracking** switch (e.g. when the bus is rented out) with an optional automatic resume date/time.
+- **Service hours** editor (days and start/end times when the bus normally runs).
 - **Change student passcode** (then the registrar sends the new one to students).
 - **Change admin passcode.**
 - Designed for a non-technical user on a phone or laptop; no back-end access needed.
 
 ### 5.2 Planned after the minimum version (if time allows)
 
-- **Rough arrival estimate** ("~6 min to Dorm A") from the bus's position along the route.
+- **Rough arrival estimate** ("~6 min to Dorm A") from the bus's position and distance to the stop (no fixed route,
+  so this would be approximate).
 - **Device battery level** shown on the admin page, so she knows when it needs charging.
 - **Push notifications** — only if the Data Protection Officer confirms they need no board approval
   ([D-014](DECISIONS.md#d-014)).
@@ -185,7 +189,7 @@ and what to do. Details in [D-018](DECISIONS.md#d-018).
 | `departures` | The timetable | `id`, `stop_id`, `time`, `days` (e.g. Mon–Fri), `note` |
 | `alerts` | Delays / cancellations / notices | `id`, `type`, `message`, `delay_min`, `affects` (departures), `starts_at`, `expires_at`, `active` |
 | `bus_position` | **Latest position only** (one row, overwritten) | `lat`, `lng`, `speed`, `heading`, `battery`, `recorded_at` |
-| `settings` | One row of admin settings | `passcode_hash` (student passcode), `tracking_paused`, `paused_until` |
+| `settings` | One row of admin settings | `passcode_hash` (student passcode), `tracking_paused`, `paused_until`, `service_hours` |
 
 The admin login is a single Supabase Auth user with a **project email** (not hers) and the admin passcode as its
 password. The login page fills in the email itself, so she only types the passcode ([D-017](DECISIONS.md#d-017)).
@@ -276,10 +280,10 @@ page code. Adding a language later means copying that file and translating it. S
 
 ## 13. Facts still to collect
 
-- [ ] Second dorm location (or confirm there is only one)
-- [ ] Exact pick-up points at each stop (gate/entrance)
-- [ ] Order of stops / direction of travel
-- [ ] Current timetable (and whether it differs by day)
+- [ ] Name of the second dorm location
+- [ ] Order of stops / direction of travel (does it loop University → Dorm → Dorm → University?)
+- [ ] Service hours (days, first and last run)
+- [ ] Whether a new timetable is coming, and its format (an old example helps for the format)
 - [ ] Is there a USB or 12/24 V (cigarette-lighter) socket on the bus near a window?
 - [ ] Driver(s)' consent to the tracker
 - [ ] How the admin will know (and remember) to pause tracking when the bus is rented out
@@ -295,8 +299,8 @@ page code. Adding a language later means copying that file and translating it. S
 
 | Item | Value |
 |---|---|
-| Colours | Black `#000000`, white `#FFFFFF`, university maroon — `#781432` or the website's `#840132` (_to confirm_, [D-020](DECISIONS.md#d-020)); dark maroon `#5A011F` for hover/pressed; light tint `#FDF2F5` for highlighted rows; slate greys for secondary text |
-| Maroon use | Header, buttons, route line, bus marker, links. Maroon text only on white/light backgrounds (on black it is hard to read). |
+| Colours | Black `#000000`, white `#FFFFFF`, university maroon `#840132` (from the website's stylesheet, [D-020](DECISIONS.md#d-020)); dark maroon `#5A011F` for hover/pressed; light tint `#FDF2F5` for highlighted rows; slate greys for secondary text |
+| Maroon use | Header, buttons, stop markers, bus marker, links. Maroon text only on white/light backgrounds (on black it is hard to read). |
 | Logo / icon | A simple bus pictogram (own design, not the university logo), used for the header, browser tab and home-screen icon |
 | Footer | "Student project — not an official university service" until the university adopts it |
 | Font | **Inter** (same as the university website), stored with the site rather than loaded from Google ([D-020](DECISIONS.md#d-020)) |
