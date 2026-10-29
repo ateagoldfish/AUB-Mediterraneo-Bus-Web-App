@@ -41,10 +41,16 @@ It must be usable long-term and be something the university could take over (see
 |---|---|
 | Buses | **1**, owned by the university. Occasionally rented out for outside events ([D-012](DECISIONS.md#d-012)). Expected to be replaced by a new bus in the near future. |
 | Routes | **1** |
-| Stops | **3** — University, Dorm A, Dorm B (real names and coordinates: _to collect_) |
+| Stops | **3** — see table below |
 | Order of stops | _to collect_ |
 | Timetable | _to collect_ (fixed daily schedule; may differ by weekday/weekend — _to confirm_) |
 | Route path | Drawn by hand once (e.g. on geojson.io) and stored as a GeoJSON file |
+
+| Stop | Coordinates (lat, lng) | Source |
+|---|---|---|
+| University — AUB Mediterraneo, Pafos | 34.76775, 32.41673 | Google Maps pin (exact pick-up point: _to confirm_) |
+| Dorms — "AUB Dorms Anavargos" | 34.80034, 32.45207 | Google Maps pin (exact pick-up point: _to confirm_) |
+| Second dorm location | _to collect_ — may be the same site as Anavargos | |
 
 The data model still allows more stops, trips or routes later without a rebuild, but the interface is designed for
 one route.
@@ -270,7 +276,8 @@ page code. Adding a language later means copying that file and translating it. S
 
 ## 13. Facts still to collect
 
-- [ ] Stop names and exact locations (3)
+- [ ] Second dorm location (or confirm there is only one)
+- [ ] Exact pick-up points at each stop (gate/entrance)
 - [ ] Order of stops / direction of travel
 - [ ] Current timetable (and whether it differs by day)
 - [ ] Is there a USB or 12/24 V (cigarette-lighter) socket on the bus near a window?
@@ -288,9 +295,11 @@ page code. Adding a language later means copying that file and translating it. S
 
 | Item | Value |
 |---|---|
-| Colours | Black `#000000`, white `#FFFFFF`, university maroon `#781432` (from the university's own website) |
+| Colours | Black `#000000`, white `#FFFFFF`, university maroon — `#781432` or the website's `#840132` (_to confirm_, [D-020](DECISIONS.md#d-020)); dark maroon `#5A011F` for hover/pressed; light tint `#FDF2F5` for highlighted rows; slate greys for secondary text |
 | Maroon use | Header, buttons, route line, bus marker, links. Maroon text only on white/light backgrounds (on black it is hard to read). |
 | Logo / icon | A simple bus pictogram (own design, not the university logo), used for the header, browser tab and home-screen icon |
 | Footer | "Student project — not an official university service" until the university adopts it |
+| Font | **Inter** (same as the university website), stored with the site rather than loaded from Google ([D-020](DECISIONS.md#d-020)) |
+| Style | Like aubmed.ac.cy: maroon header bar, white rounded cards with soft shadow, pill-shaped buttons, small letter-spaced uppercase section labels |
 | Theme | Light theme for the minimum version |
 | Feel | Large text and tap targets, one column on phones, nothing hidden behind menus |

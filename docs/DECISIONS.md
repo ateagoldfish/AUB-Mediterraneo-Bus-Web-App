@@ -33,6 +33,7 @@
 | [D-017](#d-017) | Admin logs in with a passcode only | Decided |
 | [D-018](#d-018) | Every failure has its own clear screen | Decided |
 | [D-019](#d-019) | Cloudflare + dormshuttle.com, under a project Gmail | Decided |
+| [D-020](#d-020) | Visual style follows aubmed.ac.cy | Proposed |
 
 ---
 
@@ -301,3 +302,16 @@
   project out of the personal Hostinger plan. The name avoids "AUB" (D-016).
 - **Later option:** Cloudflare Email Routing (free) can forward an address like `admin@dormshuttle.com` to the
   project Gmail, giving the project a branded address without paying for an email service.
+
+<a id="d-020"></a>
+## D-020 — Visual style follows aubmed.ac.cy
+- **Date:** 2026-10-29 · **Status:** Proposed
+- **Proposal:** Match the look of the university website so the site feels familiar: Inter font, maroon header bar,
+  white rounded cards, pill-shaped buttons, small letter-spaced uppercase section labels, slate-grey secondary text.
+- **Colour question:** the website's stylesheet actually uses **`#840132`** as its main maroon (with `#5A011F` darker
+  and `#FDF2F5` as a light tint). The colour given by the team is **`#781432`** — perhaps from the logo or a brand
+  guide. The two are very close; pick one. If `#781432` comes from an official brand guide, use that; otherwise match
+  the website.
+- **Font hosting:** Inter is free (open licence). It is stored with our site instead of loaded from Google Fonts,
+  because loading Google Fonts sends each visitor's IP address to Google, which EU courts have treated as a GDPR issue.
+- **Not copied:** logo, photos, the university name as a title (D-016).
