@@ -31,7 +31,7 @@
   "live.lost": "Live location unavailable right now. The timetable is still valid.",
   "live.notInService": "Bus not in service right now.",
   "live.notInServiceNext": "Bus not in service. Service resumes {when}.",
-  "live.paused": "Live tracking is unavailable today.",
+  "live.paused": "Live tracking is unavailable right now.",
   "live.checking": "Checking for the bus…",
   "live.untrackedNote": "Runs marked “not on map” use a different vehicle and won't show on the live map.",
 
@@ -71,6 +71,7 @@
   "day.4": "Thursday",
   "day.5": "Friday",
   "day.6": "Saturday",
+
   "dayShort.0": "Sun",
   "dayShort.1": "Mon",
   "dayShort.2": "Tue",
@@ -81,6 +82,7 @@
 
   "ago.seconds": "{n} s",
   "ago.minutes": "{n} min",
+
   "when.today": "today at {time}",
   "when.tomorrow": "tomorrow at {time}",
   "when.day": "{day} at {time}",
@@ -96,13 +98,12 @@
   "demo.hint": "Student passcode: {student} · Admin page: /admin, passcode: {admin}",
   "demo.reset": "Reset demo data",
 
-
   "notfound.title": "Page not found",
   "notfound.text": "That page doesn't exist.",
   "notfound.back": "Go to the timetable",
 
   "privacy.title": "Privacy",
-  "privacy.body": "<p>This site collects <strong>no personal data about students</strong>. There are no accounts, no email addresses, no analytics and no tracking cookies.</p><p><strong>Passcode.</strong> The passcode you enter is saved only in your own browser so you don't have to type it again. It is sent to our server only to check it.</p><p><strong>Bus location.</strong> A GPS device on the bus sends its position. Only the latest position is stored — no history of where the bus has been. The position is shown only during service hours and never while tracking is paused.</p><p><strong>Map.</strong> Map images are loaded from OpenStreetMap, which receives your IP address when loading them, as with any website.</p><p><strong>Hosting.</strong> The site is hosted on Cloudflare and its data is stored with Supabase in the EU.</p>",
+  "privacy.body": "<p>This site collects <strong>no personal data about students</strong>. There are no accounts, no email addresses, no analytics and no tracking cookies.</p><p><strong>Passcode.</strong> The passcode you enter is saved only in your own browser so you don't have to type it again. It is sent to our server only to check it.</p><p><strong>Bus location.</strong> A GPS device on the bus sends its position. Only the latest position is stored — no history of where the bus has been. The position is shown only during service hours and never while live tracking is switched off.</p><p><strong>Travel times.</strong> To estimate arrival times, the site keeps an average of how long the bus takes between stops, and how many trips that average is based on. Individual trips are not stored.</p><p><strong>Map.</strong> Map images are loaded from OpenStreetMap, which receives your IP address when loading them, as with any website.</p><p><strong>Hosting.</strong> The site is hosted on Cloudflare and its data is stored with Supabase in the EU.</p>",
   "privacy.back": "Back to the timetable",
 
   "admin.title": "Admin",
@@ -122,7 +123,7 @@
   "admin.viewSite": "View student page",
 
   "admin.nav.alerts": "Alerts",
-  "admin.nav.tracking": "Live tracking",
+  "admin.nav.hours": "Hours",
   "admin.nav.timetable": "Timetable",
   "admin.nav.passcodes": "Passcodes",
 
@@ -131,6 +132,15 @@
   "admin.tracker.never": "The tracker hasn't reported yet.",
   "admin.tracker.battery": "Battery {pct}%.",
   "admin.tracker.batteryLow": "Tracker battery low ({pct}%) — charge it soon.",
+
+  "admin.switch.title": "Live tracking",
+  "admin.switch.on": "ON",
+  "admin.switch.off": "OFF",
+  "admin.switch.isOn": "On: students can see the bus during service hours.",
+  "admin.switch.isOff": "Off: students can't see the bus, and its location isn't being recorded.",
+  "admin.switch.isOffUntil": "Off until {when}: students can't see the bus, and its location isn't being recorded.",
+  "admin.switch.resumeAt": "If you turn it off, turn it back on automatically at (optional)",
+  "admin.switch.help": "Use this in an emergency, or when the bus is rented out. Students stop seeing the bus within about 10 seconds.",
 
   "admin.alerts.active": "Active alerts",
   "admin.alerts.none": "No active alerts.",
@@ -148,15 +158,6 @@
   "admin.alerts.needMessage": "Write a message for students.",
   "admin.alerts.needDelay": "Enter the delay in minutes.",
 
-  "admin.pause.title": "Pause tracking",
-  "admin.pause.help": "Use this when the bus is rented out or not doing the shuttle. Students will see “Live tracking is unavailable today”.",
-  "admin.pause.isPaused": "Tracking is paused.",
-  "admin.pause.isPausedUntil": "Tracking is paused until {when}.",
-  "admin.pause.isLive": "Tracking is on.",
-  "admin.pause.until": "Resume automatically at (optional)",
-  "admin.pause.pause": "Pause tracking",
-  "admin.pause.resume": "Resume tracking now",
-
   "admin.hours.title": "Service hours",
   "admin.hours.help": "The live bus is only shown during these hours. Leave a day empty if there is no service.",
   "admin.hours.start": "From",
@@ -164,25 +165,30 @@
   "admin.hours.save": "Save service hours",
   "admin.hours.invalid": "{day}: enter both times, with “From” before “To”.",
 
-  "admin.tt.help": "Optional. Each row is one run of the bus. Enter the departure time from the first stop; later stops are optional.",
+  "admin.tt.help": "Optional. Pick a day to see its runs, and tap a run to change it. For each run, tap the stops in the order the bus visits them and type the time at the first stop. The other times are estimated from the travel times further down, and you can type over any of them.",
   "admin.tt.empty": "No timetable entered. Students see the live map and service hours instead.",
   "admin.tt.days": "Days",
-  "admin.tt.direction": "Direction",
   "admin.tt.note": "Note",
   "admin.tt.tracked": "On live map",
   "admin.tt.add": "Add a run",
+  "admin.tt.noneOnDay": "No runs on {day}.",
+  "admin.tt.noStops": "No stops chosen yet",
+  "admin.tt.daysHelp": "This run happens on every ticked day. Changes apply to all of them.",
+  "admin.tt.stops": "Stops: tap them in the order the bus visits them",
+  "admin.tt.times": "Times",
+  "admin.tt.estimateHint": "Grey times are estimates from the travel times. Type over one to set it yourself.",
+  "admin.tt.done": "Done",
+  "admin.tt.errStops": "The highlighted run needs at least two stops.",
   "admin.tt.duplicate": "Duplicate",
   "admin.tt.delete": "Delete",
   "admin.tt.save": "Save timetable",
   "admin.tt.unsaved": "You have unsaved changes — press “Save timetable”.",
   "admin.tt.clearAll": "Clear whole timetable",
   "admin.tt.confirmClear": "Delete every run in the timetable?",
-  "admin.tt.filter": "Show",
-  "admin.tt.filterAll": "All days",
-  "admin.tt.errNoDays": "Run {n}: choose at least one day.",
-  "admin.tt.errFirstTime": "Run {n}: enter the time at {stop}.",
-  "admin.tt.errBadTime": "Run {n}: “{value}” isn't a time like 08:30.",
-  "admin.tt.errOrder": "Run {n}: the time at {stop} is earlier than the stop before it.",
+  "admin.tt.errNoDays": "The highlighted run needs at least one day.",
+  "admin.tt.errFirstTime": "Type the time at {stop} for the highlighted run.",
+  "admin.tt.errBadTime": "“{value}” isn't a time like 08:30.",
+  "admin.tt.errOrder": "In the highlighted run, the time at {stop} is earlier than at the stop before it.",
 
   "admin.pass.student": "Student passcode",
   "admin.pass.studentHelp": "After changing it, ask the registrar to send the new passcode to students. The old one stops working immediately.",
@@ -194,6 +200,16 @@
   "admin.pass.tooShort": "Use at least {n} characters — a few words works well.",
   "admin.pass.mismatch": "The two passcodes don't match.",
   "admin.pass.changed": "Passcode changed.",
+
+  "admin.travel.title": "Travel times",
+  "admin.travel.help": "How many minutes the bus takes from one stop to the next. These are used to estimate times in the timetable. Once the tracker has timed a trip {n} times, its average replaces your number.",
+  "admin.travel.minutes": "Your estimate (min)",
+  "admin.travel.measured": "Measured: about {min} min, from {count} trips. This is in use.",
+  "admin.travel.measuring": "Measured {count} of {n} trips so far. Your number is in use.",
+  "admin.travel.notMeasured": "Not measured yet. Your number is in use.",
+  "admin.travel.save": "Save travel times",
+  "admin.travel.invalid": "{from} → {to}: enter minutes from 1 to 180, or leave it empty.",
+
   "admin.blocks.none": "No networks are blocked for wrong passcodes.",
   "admin.blocks.some": "{n} network(s) blocked after too many wrong passcodes (for example a dorm's Wi-Fi). Blocks lift by themselves within 10 minutes.",
   "admin.blocks.clear": "Unblock now"

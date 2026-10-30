@@ -1,13 +1,12 @@
-// Admin page: alerts, pause tracking, service hours, timetable and passcodes.
+// Admin page: live tracking switch, alerts, service hours, timetable, travel times and passcodes.
 
 import { config } from '../config.js';
 import { api } from './api.js';
 import { loadStrings, t } from './i18n.js';
 import {
-  cyprusNow, agoText, inServiceHours, normaliseTime, toMinutes, cyprusLocalToIso,
-  isoToCyprusLocal, formatWhen,
+  cyprusNow, agoText, inServiceHours, normaliseTime, toMinutes, cyprusLocalToIso, formatWhen,
 } from './time.js';
-import { todaysRuns, stopsInOrder, firstDeparture } from './timetable.js';
+import { todaysRuns, firstDeparture, runTimes, directionOf, MIN_MEASURED_TRIPS } from './timetable.js';
 
 const $ = (id) => document.getElementById(id);
 const DAYS_MON_FIRST = [1, 2, 3, 4, 5, 6, 0];
@@ -16,6 +15,7 @@ let adminState = null;   // last state loaded from the server
 let editTrips = [];      // the timetable as being edited (saved only on "Save timetable")
 let tripsDirty = false;  // true when editTrips has changes that aren't saved yet
 let bannerKind = null;   // what the top banner is currently showing
+let updateNav = () => {}; // re-checks which section tab to highlight (set up in setUpNav)
 
 function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
@@ -133,7 +133,6 @@ async function reload(first = false) {
   $('logout').hidden = false;
   if (first) {
     editTrips = structuredClone(adminState.trips);
-    sortTrips();
     renderTrips();
     renderHoursForm();
     resetAlertForm();
@@ -141,8 +140,9 @@ async function reload(first = false) {
   renderTracker();
   renderAlerts();
   renderAffects();
-  renderPause();
+  renderSwitch();
   renderBlocks();
+  updateNav();
 }
 
 // ---------- Passcode blocks (D-028) ----------
@@ -280,25 +280,27 @@ function setUpAlertForm() {
   });
 }
 
-// ---------- Pause tracking ----------
+// ---------- Live tracking ON/OFF (D-032) ----------
 
-function renderPause() {
+function renderSwitch() {
   const { paused, paused_until: until } = adminState;
-  $('pause-status').textContent = !paused ? t('admin.pause.isLive')
-    : until ? t('admin.pause.isPausedUntil', { when: formatWhen(until) }) : t('admin.pause.isPaused');
-  $('pause-btn').hidden = paused;
-  $('pause-until-field').hidden = paused;
-  $('resume-btn').hidden = !paused;
+  const button = $('tracking-switch');
+  button.setAttribute('aria-checked', String(!paused));
+  $('switch-label').textContent = paused ? t('admin.switch.off') : t('admin.switch.on');
+  $('tracking-status').textContent = !paused ? t('admin.switch.isOn')
+    : until ? t('admin.switch.isOffUntil', { when: formatWhen(until) }) : t('admin.switch.isOff');
+  $('tracking-card').classList.toggle('is-off', paused);
+  // "Turn back on automatically at" is chosen when switching off.
+  $('resume-field').hidden = paused;
 }
 
-function setUpPauseForm() {
-  const form = $('pause-form');
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    save(form, $('pause-btn'), () => api.admin.setPause(true, cyprusLocalToIso($('pause-until').value)));
-  });
-  $('resume-btn').addEventListener('click', (event) => {
-    save(form, event.target, () => api.admin.setPause(false, null));
+function setUpSwitch() {
+  const button = $('tracking-switch');
+  button.addEventListener('click', async () => {
+    const turnOff = !adminState.paused;
+    const until = turnOff ? cyprusLocalToIso($('resume-at').value) : null;
+    const ok = await save($('tracking-msg'), button, () => api.admin.setPause(turnOff, until));
+    if (ok) $('resume-at').value = '';
   });
 }
 
@@ -337,91 +339,31 @@ function setUpHoursForm() {
   });
 }
 
-// ---------- Timetable editor ----------
+// ---------- Timetable editor (D-031) ----------
 
-function sortTrips() {
-  const key = (trip) => {
-    const first = firstDeparture(trip, adminState.stops);
-    return [Math.min(...trip.days.map((d) => (d + 6) % 7)), first ? first.minutes : 9999];
-  };
-  editTrips.sort((a, b) => {
-    const [ad, at] = key(a);
-    const [bd, bt] = key(b);
-    return ad - bd || at - bt;
-  });
+let selectedDay = cyprusNow().day; // the day whose runs are listed
+let openTripId = null;             // the run whose editor is open
+const editTravel = new Map();      // travel times typed but not saved: 'from>to' -> text in the box
+
+const stopById = (id) => adminState.stops.find((s) => s.id === id) ?? { id, name: id };
+const stopsSorted = () => [...adminState.stops].sort((a, b) => a.sort - b.sort);
+
+// Saved travel times plus any numbers typed but not saved yet, so estimates update as she types.
+function currentTravelTimes() {
+  const rows = (adminState.travel_times ?? []).map((r) => ({ ...r }));
+  for (const [key, text] of editTravel) {
+    const [from, to] = key.split('>');
+    const value = text.trim() === '' ? null : Number(text);
+    const manual = Number.isInteger(value) && value >= 1 && value <= 180 ? value : null;
+    const row = rows.find((r) => r.from_stop === from && r.to_stop === to);
+    if (row) row.manual_min = manual;
+    else rows.push({ from_stop: from, to_stop: to, manual_min: manual, measured_avg: null, measured_count: 0 });
+  }
+  return rows;
 }
 
-function renderFilter() {
-  const select = $('tt-filter');
-  if (select.options.length) return;
-  select.append(el('option', { value: 'all' }, t('admin.tt.filterAll')));
-  DAYS_MON_FIRST.forEach((day) => select.append(el('option', { value: day }, t(`day.${day}`))));
-  // Start on today's runs rather than the whole week, so the list stays short.
-  select.value = String(cyprusNow().day);
-  select.addEventListener('change', renderTrips);
-}
-
-function newTrip(direction = 'to_campus') {
-  return { id: crypto.randomUUID(), days: [1, 2, 3, 4, 5], direction, times: {}, note: '', tracked: true };
-}
-
-function tripEditor(trip, number) {
-  const stops = stopsInOrder(adminState.stops, trip.direction);
-  const row = el('div', { class: 'trip-row', id: `trip-${trip.id}` });
-  const rerender = () => row.replaceWith(tripEditor(trip, number));
-
-  row.append(
-    el('div', { class: 'trip-head' },
-      el('span', { class: 'num' }, `#${number}`),
-      el('select', {
-        'aria-label': t('admin.tt.direction'),
-        onchange: (e) => { trip.direction = e.target.value; rerender(); },
-      }, ['to_campus', 'to_dorms'].map((d) => el('option', { value: d, selected: d === trip.direction }, t(`tt.direction.${d}`)))),
-      el('label', { class: 'inline-check' },
-        el('input', { type: 'checkbox', checked: trip.tracked !== false, onchange: (e) => { trip.tracked = e.target.checked; } }),
-        t('admin.tt.tracked'))),
-    el('div', { class: 'day-chips', role: 'group', 'aria-label': t('admin.tt.days') },
-      DAYS_MON_FIRST.map((day) => el('label', {},
-        el('input', {
-          type: 'checkbox', checked: trip.days.includes(day),
-          onchange: (e) => {
-            trip.days = e.target.checked ? [...trip.days, day] : trip.days.filter((d) => d !== day);
-          },
-        }),
-        el('span', {}, t(`dayShort.${day}`))))),
-    el('div', { class: 'trip-times' }, stops.map((stop) => {
-      const id = `time-${trip.id}-${stop.id}`;
-      return el('div', {},
-        el('label', { for: id }, stop.name),
-        el('input', {
-          id, type: 'text', inputmode: 'numeric', placeholder: '--:--', value: trip.times?.[stop.id] ?? '', maxlength: 5,
-          oninput: (e) => {
-            trip.times = { ...trip.times, [stop.id]: e.target.value.trim() };
-            if (!trip.times[stop.id]) delete trip.times[stop.id];
-          },
-        }));
-    })),
-    el('div', { class: 'trip-foot' },
-      el('input', {
-        type: 'text', value: trip.note ?? '', placeholder: t('admin.tt.note'), 'aria-label': t('admin.tt.note'), maxlength: 40,
-        oninput: (e) => { trip.note = e.target.value; },
-      }),
-      el('div', { class: 'actions' },
-        el('button', {
-          class: 'btn btn-outline btn-small', type: 'button',
-          onclick: () => {
-            const copy = { ...structuredClone(trip), id: crypto.randomUUID() };
-            editTrips.splice(editTrips.indexOf(trip) + 1, 0, copy);
-            setTripsDirty(true);
-            renderTrips();
-          },
-        }, t('admin.tt.duplicate')),
-        el('button', {
-          class: 'btn btn-outline btn-small', type: 'button',
-          onclick: () => { editTrips = editTrips.filter((x) => x !== trip); setTripsDirty(true); renderTrips(); },
-        }, t('admin.tt.delete')))),
-  );
-  return row;
+function routeText(trip) {
+  return trip.stop_ids.length ? trip.stop_ids.map((id) => stopById(id).name).join(' → ') : t('admin.tt.noStops');
 }
 
 function setTripsDirty(dirty) {
@@ -429,38 +371,182 @@ function setTripsDirty(dirty) {
   $('trips-unsaved').hidden = !dirty;
 }
 
+function renderDayPicker() {
+  $('day-picker').replaceChildren(...DAYS_MON_FIRST.map((day) => el('button', {
+    type: 'button',
+    class: 'day-btn',
+    'aria-pressed': String(day === selectedDay),
+    'aria-label': t(`day.${day}`),
+    onclick: () => { selectedDay = day; openTripId = null; renderTrips(); },
+  }, t(`dayShort.${day}`))));
+}
+
+// One line per run: "08:30  Anavargos Dorms → Tepak Dorms → Campus". Tapping opens the editor.
+function tripSummary(trip) {
+  const first = firstDeparture(trip, adminState.stops);
+  const open = trip.id === openTripId;
+  return el('button', {
+    type: 'button',
+    class: 'trip-summary',
+    'aria-expanded': String(open),
+    onclick: () => { openTripId = open ? null : trip.id; renderTrips(); },
+  },
+  el('span', { class: 'time' }, first ? first.time : '--:--'),
+  el('span', { class: 'route' }, routeText(trip)),
+  trip.note ? el('span', { class: 'tag' }, trip.note) : null,
+  trip.tracked === false ? el('span', { class: 'tag' }, t('next.notTracked')) : null);
+}
+
+function tripEditor(trip) {
+  const box = el('div', { class: 'trip-editor' });
+
+  const days = el('div', { class: 'day-chips', role: 'group', 'aria-label': t('admin.tt.days') },
+    DAYS_MON_FIRST.map((day) => el('label', {},
+      el('input', {
+        type: 'checkbox',
+        checked: trip.days.includes(day),
+        onchange: (e) => { trip.days = e.target.checked ? [...trip.days, day] : trip.days.filter((d) => d !== day); },
+      }),
+      el('span', {}, t(`dayShort.${day}`)))));
+
+  // Tapping a stop adds it as the next stop; tapping it again takes it out.
+  const stopPicker = el('div', { class: 'stop-picker', role: 'group', 'aria-label': t('admin.tt.stops') },
+    stopsSorted().map((stop) => {
+      const index = trip.stop_ids.indexOf(stop.id);
+      return el('button', {
+        type: 'button',
+        class: `stop-btn${index >= 0 ? ' selected' : ''}`,
+        'aria-pressed': String(index >= 0),
+        onclick: () => {
+          if (index >= 0) {
+            trip.stop_ids = trip.stop_ids.filter((id) => id !== stop.id);
+            trip.times = { ...trip.times };
+            delete trip.times[stop.id];
+          } else {
+            trip.stop_ids = [...trip.stop_ids, stop.id];
+          }
+          setTripsDirty(true);
+          renderTrips();
+        },
+      }, index >= 0 ? el('span', { class: 'order' }, String(index + 1)) : null, stop.name);
+    }));
+
+  const times = el('div', { class: 'trip-times' }, trip.stop_ids.map((id, i) => {
+    const inputId = `time-${trip.id}-${id}`;
+    return el('div', {},
+      el('label', { for: inputId }, `${i + 1}. ${stopById(id).name}`),
+      el('input', {
+        id: inputId, type: 'text', inputmode: 'numeric', maxlength: 5, 'data-stop': id, value: trip.times?.[id] ?? '',
+        oninput: (e) => {
+          const value = e.target.value.trim();
+          trip.times = { ...trip.times };
+          if (value) trip.times[id] = value;
+          else delete trip.times[id];
+          refreshEstimates(box, trip);
+        },
+      }));
+  }));
+
+  box.append(
+    el('h3', { class: 'editor-label' }, t('admin.tt.days')),
+    days,
+    el('p', { class: 'small muted' }, t('admin.tt.daysHelp')),
+    el('h3', { class: 'editor-label' }, t('admin.tt.stops')),
+    stopPicker,
+    ...(trip.stop_ids.length ? [
+      el('h3', { class: 'editor-label' }, t('admin.tt.times')),
+      times,
+      el('p', { class: 'small muted' }, t('admin.tt.estimateHint')),
+    ] : []),
+    el('div', { class: 'trip-foot' },
+      el('input', {
+        type: 'text', value: trip.note ?? '', placeholder: t('admin.tt.note'), 'aria-label': t('admin.tt.note'), maxlength: 40,
+        oninput: (e) => { trip.note = e.target.value; },
+      }),
+      el('label', { class: 'inline-check' },
+        el('input', { type: 'checkbox', checked: trip.tracked !== false, onchange: (e) => { trip.tracked = e.target.checked; } }),
+        t('admin.tt.tracked'))),
+    el('div', { class: 'trip-actions' },
+      el('button', {
+        class: 'btn btn-small', type: 'button',
+        onclick: () => { openTripId = null; renderTrips(); },
+      }, t('admin.tt.done')),
+      el('button', {
+        class: 'btn btn-outline btn-small', type: 'button',
+        onclick: () => {
+          const copy = { ...structuredClone(trip), id: crypto.randomUUID() };
+          editTrips.push(copy);
+          openTripId = copy.id;
+          setTripsDirty(true);
+          renderTrips();
+        },
+      }, t('admin.tt.duplicate')),
+      el('button', {
+        class: 'btn btn-outline btn-small', type: 'button',
+        onclick: () => { editTrips = editTrips.filter((x) => x !== trip); openTripId = null; setTripsDirty(true); renderTrips(); },
+      }, t('admin.tt.delete'))),
+  );
+  refreshEstimates(box, trip);
+  return box;
+}
+
+// Shows estimated times as grey hints ("~08:40") in the boxes she hasn't typed in.
+function refreshEstimates(box, trip) {
+  for (const entry of runTimes(trip, adminState.stops, currentTravelTimes())) {
+    const input = box.querySelector(`input[data-stop="${entry.stop.id}"]`);
+    if (input) input.placeholder = entry.estimated ? `~${entry.time}` : '--:--';
+  }
+  const summaryTime = box.closest('.trip-row')?.querySelector('.trip-summary .time');
+  if (summaryTime) summaryTime.textContent = firstDeparture(trip, adminState.stops)?.time ?? '--:--';
+}
+
+function refreshOpenEditor() {
+  const box = document.querySelector('.trip-editor');
+  const trip = editTrips.find((x) => x.id === openTripId);
+  if (box && trip) refreshEstimates(box, trip);
+}
+
 function renderTrips() {
-  renderFilter();
-  const filter = $('tt-filter').value;
+  renderDayPicker();
   const list = $('trip-list');
-  if (!editTrips.length) { list.replaceChildren(el('p', { class: 'card muted' }, t('admin.tt.empty'))); return; }
-  list.replaceChildren(...editTrips
-    .map((trip, i) => [trip, i + 1])
-    .filter(([trip]) => filter === 'all' || trip.days.includes(Number(filter)))
-    .map(([trip, number]) => tripEditor(trip, number)));
+  const startOf = (trip) => firstDeparture(trip, adminState.stops)?.minutes ?? 9999;
+  // The open run stays visible even if she unticks the day being shown.
+  const trips = editTrips
+    .filter((trip) => trip.days.includes(selectedDay) || trip.id === openTripId)
+    .sort((a, b) => startOf(a) - startOf(b));
+  if (!editTrips.length) list.replaceChildren(el('p', { class: 'card muted' }, t('admin.tt.empty')));
+  else if (!trips.length) list.replaceChildren(el('p', { class: 'muted' }, t('admin.tt.noneOnDay', { day: t(`day.${selectedDay}`) })));
+  else {
+    list.replaceChildren(...trips.map((trip) => el('div', { class: `trip-row${trip.id === openTripId ? ' open' : ''}`, id: `trip-${trip.id}` },
+      tripSummary(trip),
+      trip.id === openTripId ? tripEditor(trip) : null)));
+  }
+  renderTravel(); // the list of stop pairs depends on the runs
 }
 
 // Checks every run; returns the first problem found, or null. Also tidies the times.
 function validateTrips() {
-  for (const [i, trip] of editTrips.entries()) {
-    const n = i + 1;
-    if (!trip.days.length) return { trip, text: t('admin.tt.errNoDays', { n }) };
-    const stops = stopsInOrder(adminState.stops, trip.direction);
-    let previous = -1;
-    let any = false;
+  for (const trip of editTrips) {
+    if (!trip.days.length) return { trip, text: t('admin.tt.errNoDays') };
+    if (trip.stop_ids.length < 2) return { trip, text: t('admin.tt.errStops') };
     const tidy = {};
-    for (const stop of stops) {
-      const raw = trip.times?.[stop.id];
+    for (const id of trip.stop_ids) {
+      const raw = trip.times?.[id];
       if (!raw) continue;
       const time = normaliseTime(raw);
-      if (!time) return { trip, text: t('admin.tt.errBadTime', { n, value: raw }) };
-      if (toMinutes(time) < previous) return { trip, text: t('admin.tt.errOrder', { n, stop: stop.name }) };
-      previous = toMinutes(time);
-      tidy[stop.id] = time;
-      any = true;
+      if (!time) return { trip, text: t('admin.tt.errBadTime', { value: raw }) };
+      tidy[id] = time;
     }
-    if (!any) return { trip, text: t('admin.tt.errFirstTime', { n, stop: stops[0].name }) };
+    const firstId = trip.stop_ids[0];
+    if (!tidy[firstId]) return { trip, text: t('admin.tt.errFirstTime', { stop: stopById(firstId).name }) };
     trip.times = tidy;
+    let previous = -1;
+    for (const entry of runTimes(trip, adminState.stops, currentTravelTimes())) {
+      if (entry.minutes === null) continue;
+      if (entry.minutes < previous) return { trip, text: t('admin.tt.errOrder', { stop: entry.stop.name }) };
+      previous = entry.minutes;
+    }
+    trip.direction = directionOf(trip.stop_ids);
   }
   return null;
 }
@@ -473,10 +559,11 @@ function setUpTimetable() {
   window.addEventListener('beforeunload', (event) => { if (tripsDirty) event.preventDefault(); });
 
   $('add-trip').addEventListener('click', () => {
-    const trip = newTrip();
-    const filter = $('tt-filter').value;
-    if (filter !== 'all') trip.days = [Number(filter)];
+    const trip = {
+      id: crypto.randomUUID(), days: [selectedDay], stop_ids: [], direction: 'to_campus', times: {}, note: '', tracked: true,
+    };
     editTrips.push(trip);
+    openTripId = trip.id;
     setTripsDirty(true);
     renderTrips();
     $(`trip-${trip.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -484,11 +571,12 @@ function setUpTimetable() {
 
   $('save-trips').addEventListener('click', async (event) => {
     const box = $('trips-msg');
-    document.querySelectorAll('.trip-row.invalid').forEach((r) => r.classList.remove('invalid'));
     const problem = validateTrips();
     if (problem) {
       formMessage(box, problem.text);
-      $('tt-filter').value = 'all';
+      // Show the run with the problem: switch to one of its days and open it.
+      if (problem.trip.days.length && !problem.trip.days.includes(selectedDay)) selectedDay = problem.trip.days[0];
+      openTripId = problem.trip.id;
       renderTrips();
       const row = $(`trip-${problem.trip.id}`);
       row?.classList.add('invalid');
@@ -496,15 +584,104 @@ function setUpTimetable() {
       return;
     }
     const ok = await save(box, event.target, () => api.admin.saveTimetable(editTrips));
-    if (ok) { setTripsDirty(false); sortTrips(); renderTrips(); }
+    if (ok) { setTripsDirty(false); renderTrips(); }
   });
 
   $('clear-trips').addEventListener('click', () => {
     if (!confirm(t('admin.tt.confirmClear'))) return;
     editTrips = [];
+    openTripId = null;
     setTripsDirty(true);
     renderTrips();
   });
+}
+
+// ---------- Travel times (D-031) ----------
+
+// Every pair of stops that follow each other in some run, plus pairs that already have a time.
+function travelPairs() {
+  const keys = new Set((adminState.travel_times ?? []).map((r) => `${r.from_stop}>${r.to_stop}`));
+  for (const trip of editTrips) {
+    trip.stop_ids.slice(1).forEach((id, i) => keys.add(`${trip.stop_ids[i]}>${id}`));
+  }
+  const order = (id) => stopById(id).sort ?? 99;
+  return [...keys].map((key) => key.split('>')).sort((a, b) => order(a[0]) - order(b[0]) || order(a[1]) - order(b[1]));
+}
+
+function renderTravel() {
+  $('travel-help').textContent = t('admin.travel.help', { n: MIN_MEASURED_TRIPS });
+  const rows = travelPairs().map(([from, to]) => {
+    const key = `${from}>${to}`;
+    const saved = adminState.travel_times?.find((r) => r.from_stop === from && r.to_stop === to);
+    const count = saved?.measured_count ?? 0;
+    const inUse = count >= MIN_MEASURED_TRIPS && saved?.measured_avg;
+    const status = inUse ? t('admin.travel.measured', { min: Math.round(saved.measured_avg), count })
+      : count > 0 ? t('admin.travel.measuring', { count, n: MIN_MEASURED_TRIPS })
+        : t('admin.travel.notMeasured');
+    const id = `travel-${from}-${to}`;
+    return el('div', { class: 'travel-row' },
+      el('label', { for: id, class: 'travel-pair' }, `${stopById(from).name} → ${stopById(to).name}`),
+      el('input', {
+        id, type: 'number', min: 1, max: 180, inputmode: 'numeric', 'aria-describedby': `${id}-status`,
+        value: editTravel.has(key) ? editTravel.get(key) : (saved?.manual_min ?? ''),
+        oninput: (e) => { editTravel.set(key, e.target.value); refreshOpenEditor(); },
+      }),
+      el('p', { id: `${id}-status`, class: `travel-status small ${inUse ? 'in-use' : 'muted'}` }, status));
+  });
+  $('travel-list').replaceChildren(
+    el('div', { class: 'travel-head small muted' }, el('span'), el('span', {}, t('admin.travel.minutes'))),
+    ...rows,
+  );
+}
+
+function setUpTravel() {
+  $('travel-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.target;
+    const rows = [];
+    for (const [from, to] of travelPairs()) {
+      const input = $(`travel-${from}-${to}`);
+      const text = input.value.trim();
+      const value = text === '' ? null : Number(text);
+      if (value !== null && !(Number.isInteger(value) && value >= 1 && value <= 180)) {
+        formMessage(form, t('admin.travel.invalid', { from: stopById(from).name, to: stopById(to).name }));
+        input.focus();
+        return;
+      }
+      rows.push({ from_stop: from, to_stop: to, manual_min: value });
+    }
+    if (await save(form, form.querySelector('button'), () => api.admin.saveTravelTimes(rows))) {
+      editTravel.clear();
+      renderTravel();
+    }
+  });
+}
+
+// ---------- Section tabs (D-033) ----------
+
+// The tabs stick to the top of the screen; the one for the section in view is highlighted.
+function setUpNav() {
+  const nav = $('admin-nav');
+  const links = [...nav.querySelectorAll('a')];
+  updateNav = () => {
+    const offset = nav.getBoundingClientRect().height + 24;
+    let current = null;
+    for (const link of links) {
+      const section = document.querySelector(link.getAttribute('href'));
+      if (section && section.getBoundingClientRect().top <= offset) current = link;
+    }
+    // Scrolled to the very bottom: the last section may be too short to reach the top.
+    const atBottom = window.scrollY > 0
+      && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+    if (atBottom) current = links[links.length - 1];
+    for (const link of links) {
+      link.classList.toggle('active', link === current);
+      if (link === current) link.setAttribute('aria-current', 'true');
+      else link.removeAttribute('aria-current');
+    }
+  };
+  window.addEventListener('scroll', () => requestAnimationFrame(updateNav), { passive: true });
+  window.addEventListener('resize', updateNav);
 }
 
 // ---------- Passcodes ----------
@@ -538,9 +715,11 @@ async function start() {
   }
   setUpLogin();
   setUpAlertForm();
-  setUpPauseForm();
+  setUpSwitch();
   setUpHoursForm();
   setUpTimetable();
+  setUpTravel();
+  setUpNav();
   setUpPasscodeForms();
   $('clear-blocks').addEventListener('click', (event) => save($('blocks-msg'), event.target, () => api.admin.clearPasscodeBlocks()));
   window.addEventListener('offline', () => setBanner(t('admin.offline'), 'connection'));

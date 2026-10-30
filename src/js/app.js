@@ -4,9 +4,9 @@ import { config, demoMode } from '../config.js';
 import { api } from './api.js';
 import { loadStrings, t } from './i18n.js';
 import { cyprusNow, agoText, fromMinutes, nextServiceStartText, formatWhen } from './time.js';
-import { todaysRuns, nextRun, tripsForDay, stopsInOrder, firstDeparture } from './timetable.js';
+import { todaysRuns, nextRun, tripsForDay, runTimes, firstDeparture } from './timetable.js';
 
-const DATA_KEY = 'dormshuttle-data';
+const DATA_KEY = 'dormshuttle-data-v2'; // v2: runs have stop_ids (D-031)
 const PASS_KEY = 'dormshuttle-passcode';
 const PASS_OK_KEY = 'dormshuttle-passcode-worked';
 const BUS_ICON = new URL('../img/bus.svg', import.meta.url).href;
@@ -102,13 +102,12 @@ function renderAlerts() {
   }));
 }
 
-// "Anavargos Dorms · Tepak Dorms 12:40": the first stop (its time is shown separately),
-// then any later stops that have a time.
+// "Anavargos Dorms · Tepak Dorms ~12:40 · Campus ~12:48": the first stop (its time is
+// shown separately), then the later stops. "~" marks an estimated time (D-031).
 function stopsText(run) {
-  const later = stopsInOrder(state.data.stops, run.trip.direction)
-    .filter((stop) => stop.id !== run.first.stop.id && run.trip.times?.[stop.id])
-    .map((stop) => `${stop.name} ${run.trip.times[stop.id]}`);
-  return [run.first.stop.name, ...later].join(' · ');
+  const [first, ...later] = runTimes(run.trip, state.data.stops, state.data.travel_times ?? []);
+  return [first.stop.name, ...later.map((s) => (s.time ? `${s.stop.name} ${s.estimated ? '~' : ''}${s.time}` : s.stop.name))]
+    .join(' · ');
 }
 
 function waitText(minutes) {

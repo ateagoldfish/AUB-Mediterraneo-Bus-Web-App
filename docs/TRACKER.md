@@ -37,6 +37,12 @@ Content-Type: application/json
 - HTTP **401/403** → wrong tracker key. Don't retry quickly; check the key.
 - Network error / HTTP 5xx → retry after 30 s, then back off (60 s, 120 s, …, max 5 min).
 
+## Travel times (nothing extra for the tracker to do)
+
+The server also uses the reports to time trips between stops (D-031): when the bus leaves one stop (more than 150 m
+away) and later reaches another, it adds the trip's duration to that pair's average. The tracker doesn't need to do
+anything for this — just keep reporting every ~10 s while tracking.
+
 ## Test it without the tracker
 
 From any computer, during service hours (replace the three values):

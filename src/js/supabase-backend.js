@@ -78,13 +78,14 @@ async function adminRequest(path, options = {}) {
 
 export const supabaseBackend = {
   async getPublicData() {
-    const [stops, trips, alerts, serviceHours] = await Promise.all([
+    const [stops, trips, alerts, travelTimes, serviceHours] = await Promise.all([
       request('/rest/v1/stops?select=*&order=sort'),
       request('/rest/v1/trips?select=*'),
       request('/rest/v1/alerts?select=*&order=created_at.desc'),
+      request('/rest/v1/travel_times?select=*'),
       rpc('get_service_hours'),
     ]);
-    return { stops, trips, alerts, service_hours: serviceHours ?? {} };
+    return { stops, trips, alerts, travel_times: travelTimes, service_hours: serviceHours ?? {} };
   },
 
   async getPosition(passcode) {
@@ -116,10 +117,11 @@ export const supabaseBackend = {
     },
 
     async getState() {
-      const [stops, trips, alerts, settings, position, blocked] = await Promise.all([
+      const [stops, trips, alerts, travelTimes, settings, position, blocked] = await Promise.all([
         adminRequest('/rest/v1/stops?select=*&order=sort'),
         adminRequest('/rest/v1/trips?select=*'),
         adminRequest('/rest/v1/alerts?select=*&order=created_at.desc'),
+        adminRequest('/rest/v1/travel_times?select=*'),
         adminRequest('/rest/v1/settings?select=service_hours,paused,paused_until&id=eq.1'),
         adminRequest('/rest/v1/bus_position?select=recorded_at,battery&id=eq.1'),
         rpc('count_passcode_blocks', {}, await token()),
@@ -128,6 +130,7 @@ export const supabaseBackend = {
       const paused = s.paused && (!s.paused_until || new Date(s.paused_until) > new Date());
       return {
         stops, trips, alerts,
+        travel_times: travelTimes,
         service_hours: s.service_hours ?? {},
         paused,
         paused_until: paused ? s.paused_until : null,
@@ -142,6 +145,8 @@ export const supabaseBackend = {
 
     // Replaces the whole timetable in one step on the server, so it's never half-saved.
     saveTimetable: async (trips) => rpc('save_timetable', { new_trips: trips }, await token()),
+
+    saveTravelTimes: async (rows) => rpc('save_travel_times', { new_times: rows }, await token()),
 
     saveServiceHours: (hours) => adminRequest('/rest/v1/settings?id=eq.1', {
       method: 'PATCH', body: { service_hours: hours }, prefer: 'return=minimal',

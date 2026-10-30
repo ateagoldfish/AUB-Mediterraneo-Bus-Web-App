@@ -6,17 +6,20 @@
 import { ApiError } from './errors.js';
 import { cyprusNow, inServiceHours } from './time.js';
 import {
-  demoStops, demoTrips, demoServiceHours, DEMO_STUDENT_PASSCODE, DEMO_ADMIN_PASSCODE,
+  demoStops, demoTrips, demoTravelTimes, demoServiceHours, DEMO_STUDENT_PASSCODE, DEMO_ADMIN_PASSCODE,
 } from './demo-data.js';
 
 const KEY = 'dormshuttle-demo';
+const VERSION = 2; // bump when the shape of the demo data changes, to start fresh
 const SESSION_KEY = 'dormshuttle-demo-admin';
 export const SCENARIOS = ['live', 'real_hours', 'weak', 'lost', 'not_in_service', 'server_down'];
 
 function freshState() {
   return {
+    version: VERSION,
     stops: demoStops,
     trips: demoTrips(),
+    travel_times: demoTravelTimes,
     alerts: [],
     service_hours: demoServiceHours,
     paused: false,
@@ -31,7 +34,7 @@ function freshState() {
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY));
-    if (saved) return saved;
+    if (saved?.version === VERSION) return saved;
   } catch { /* fall through to fresh data */ }
   const state = freshState();
   save(state);
@@ -109,6 +112,7 @@ export const demoBackend = {
     stops: state.stops,
     trips: state.trips,
     alerts: activeAlerts(state),
+    travel_times: state.travel_times,
     service_hours: state.service_hours,
   })),
 
@@ -145,6 +149,7 @@ export const demoBackend = {
       stops: state.stops,
       trips: state.trips,
       alerts: activeAlerts(state),
+      travel_times: state.travel_times,
       service_hours: state.service_hours,
       paused: isPaused(state),
       paused_until: isPaused(state) ? state.paused_until : null,
@@ -162,6 +167,15 @@ export const demoBackend = {
     clearAlert: (id) => adminCall((state) => { state.alerts = state.alerts.filter((a) => a.id !== id); }),
 
     saveTimetable: (trips) => adminCall((state) => { state.trips = trips; }),
+
+    // Only the admin's own numbers change; measured averages come from the tracker.
+    saveTravelTimes: (rows) => adminCall((state) => {
+      for (const { from_stop: from, to_stop: to, manual_min: manual } of rows) {
+        const row = state.travel_times.find((r) => r.from_stop === from && r.to_stop === to);
+        if (row) row.manual_min = manual;
+        else state.travel_times.push({ from_stop: from, to_stop: to, manual_min: manual, measured_avg: null, measured_count: 0 });
+      }
+    }),
 
     saveServiceHours: (hours) => adminCall((state) => { state.service_hours = hours; }),
 

@@ -4,7 +4,7 @@
 > It only ever describes the **present state**. When something changes, edit it in place; the reasoning and history
 > belong in [`DECISIONS.md`](DECISIONS.md). Items marked **(proposed)** are not yet confirmed — see the linked decision.
 
-_Last updated: 2026-10-31_
+_Last updated: 2026-10-30_
 
 ---
 
@@ -32,7 +32,7 @@ It must be usable long-term and be something the university could take over (see
 | Role | Who | Can do | Account |
 |---|---|---|---|
 | **Student** | ~400 students (growing) | View schedule, alerts, map. No input. | None — one shared passcode, distributed by the registrar ([D-013](DECISIONS.md#d-013)) |
-| **Admin** | University transport coordinator (one person, possibly a deputy) | Edit timetable, publish/clear alerts, pause tracking, change passcode | **Admin passcode only** — no name or personal email ([D-017](DECISIONS.md#d-017)) |
+| **Admin** | University transport coordinator (one person, possibly a deputy) | Turn live tracking on/off, publish/clear alerts, edit timetable and travel times, set service hours, change passcodes | **Admin passcode only** — no name or personal email ([D-017](DECISIONS.md#d-017)) |
 | **Tracker** | GPS device on the bus | Sends its position | Device secret key, no human login |
 
 ## 4. The route
@@ -69,20 +69,29 @@ one route.
 - Map with the stops (no route line — [D-021](DECISIONS.md#d-021)).
 - **Live bus marker** (with "last updated X s ago"), shown only after the student enters the passcode. The browser
   remembers the passcode, so it is entered once per device (until the passcode changes).
-- When no recent position is available (outside service hours, tracking paused, device offline), the marker is hidden
+- When no recent position is available (outside service hours, live tracking switched off, device offline), the marker is hidden
   and the page says "Live location unavailable" instead of showing a stale position.
 - Installable to home screen (PWA).
 
 **Admin page** (`/admin`, login required):
 - **Login:** a single "Admin passcode" field (separate from the student passcode). Stays logged in on her device
   until she logs out or the session expires.
+- **Header:** "View student page" and "Log out", stacked on phones ([D-033](DECISIONS.md#d-033)).
+- **Section tabs** (Alerts, Hours, Timetable, Passcodes) stick to the top of the screen and highlight the section
+  currently in view ([D-033](DECISIONS.md#d-033)).
+- **Live tracking ON/OFF switch** at the top, just below the tracker status, so it can be found quickly in an
+  emergency. OFF overrides everything: students stop seeing the bus within ~10 s and no location is stored. Optional
+  "turn back on automatically at" time, e.g. for rentals ([D-032](DECISIONS.md#d-032)).
 - **Publish alert:** pick type (delay / cancellation / other), optional delay in minutes, optional affected
   departure(s), free-text message, optional expiry time → Publish.
 - **Clear alert** in one tap.
-- **Edit timetable** (optional — [D-024](DECISIONS.md#d-024)): grouped by day pattern (e.g. Mon–Thu, Fri, Sat–Sun), each
-  trip has a direction and a departure time from its first stop; times at later stops are optional. "Copy day
-  group" and "Clear timetable" buttons.
-- **Pause tracking** switch (e.g. when the bus is rented out) with an optional automatic resume date/time.
+- **Edit timetable** (optional — [D-031](DECISIONS.md#d-031)): pick a day to list its runs, one short line each
+  ("08:30 · Anavargos Dorms → Tepak Dorms → Campus"); tap a run to edit it. In the editor: the days it runs, the
+  stops **tapped in order** (the direction follows from the order), the time at the first stop, and optional times
+  at later stops — empty ones show an **estimate** ("~08:40") from the travel times, and she can type over any of
+  them. Note, "on live map", Duplicate, Delete. "Save timetable" saves everything at once; problems are highlighted.
+- **Travel times:** minutes between each pair of stops used in a run. Her own estimate is used until the tracker
+  has timed the trip 5 times; then the measured average is used, and the page shows which is in use.
 - **Service hours** editor (days and start/end times when the bus normally runs).
 - **Change student passcode** (then the registrar sends the new one to students).
 - **Change admin passcode.**
@@ -90,8 +99,7 @@ one route.
 
 ### 5.2 Planned after the minimum version (if time allows)
 
-- **Rough arrival estimate** ("~6 min to Dorm A") from the bus's position and distance to the stop (no fixed route,
-  so this would be approximate).
+- **Live arrival estimate** ("~6 min to Tepak Dorms") from the bus's position and the measured travel times.
 - **Device battery level** shown on the admin page, so she knows when it needs charging.
 - **Push notifications** — only if the Data Protection Officer confirms they need no board approval
   ([D-014](DECISIONS.md#d-014)).
@@ -130,7 +138,7 @@ and what to do. Details in [D-018](DECISIONS.md#d-018).
 | Position 1–5 min old | Faded marker + "Last seen X min ago — live signal weak". |
 | No position for > 5 min during service hours | Marker hidden; "Live location unavailable right now. Timetable below is still valid." |
 | Outside service hours | "Bus not in service. Next departure: …" |
-| Tracking paused by admin | "Live tracking is unavailable today." (no reason given publicly) |
+| Live tracking switched off by admin | "Live tracking is unavailable right now." (no reason given publicly) |
 | Device has no GPS fix yet (just switched on) | Treated like "no position". |
 
 **Student page — passcode**
@@ -158,6 +166,8 @@ and what to do. Details in [D-018](DECISIONS.md#d-018).
 | Can't reach the server when logging in | "Can't reach the server. Check your connection and try again." |
 | Can't reach the server when loading | Banner "Can't reach the server. Retrying every 30 seconds…"; the panel loads by itself once the server answers. |
 | Admin goes offline | Banner "You're offline. Changes can't be saved until the connection is back." Clears when back online. |
+| Timetable problem when saving (no days, fewer than two stops, no first time, bad time, times out of order) | The run is opened and highlighted, with a message saying what's wrong. |
+| Travel time not a number from 1 to 180 | Message naming the pair of stops; that box is selected. |
 | Session expired | "You've been logged out. Log in again." Login form appears above the panel; unsaved edits stay on the page. |
 | Save failed (offline / server error) | "Not saved — check your connection and try again." Edits kept; nothing half-saved. |
 | Unsaved timetable changes | "You have unsaved changes — press “Save timetable”." The browser warns before leaving the page. |
@@ -186,7 +196,7 @@ and what to do. Details in [D-018](DECISIONS.md#d-018).
 | Part | Choice | Notes |
 |---|---|---|
 | Front end | Static site (HTML/CSS/JS), PWA | No server code on the web host |
-| Map | Leaflet + OpenStreetMap tiles | Free; attribution required |
+| Map | Leaflet + OpenStreetMap tiles (labels in Greek); to switch to CARTO for English labels once a free key is requested ([D-034](DECISIONS.md#d-034)) | Free; attribution required |
 | Back end | Supabase (EU region) | Postgres DB, Auth (admin only), database functions for the tracker and passcode check — all in `supabase/schema.sql` |
 | Hosting | Cloudflare Pages, domain `dormshuttle.com` | See [D-019](DECISIONS.md#d-019) |
 | GPS ingestion | Tracker posts directly to the `report_position` database function over HTTPS (no relay server) | See [D-015](DECISIONS.md#d-015), [`TRACKER.md`](TRACKER.md) |
@@ -200,9 +210,10 @@ Defined in [`supabase/schema.sql`](../supabase/schema.sql).
 | Table | Purpose | Key fields |
 |---|---|---|
 | `stops` | The stops | `id`, `name`, `lat`, `lng`, `sort` (dorms first, campus last), `weekend_only` |
-| `trips` | One bus run (timetable) | `id`, `days` (0 = Sun … 6 = Sat), `direction` (`to_campus` / `to_dorms`), `times` (e.g. `{"anavargos": "08:30", "tepak": "08:40"}`), `note` (e.g. "Coach"), `tracked` ([D-026](DECISIONS.md#d-026)) |
+| `trips` | One bus run (timetable) | `id`, `days` (0 = Sun … 6 = Sat), `stop_ids` (stops in the order visited), `direction` (set from the last stop), `times` (only the times typed in, e.g. `{"anavargos": "08:30"}`; the rest are estimated), `note` (e.g. "Coach"), `tracked` ([D-031](DECISIONS.md#d-031)) |
+| `travel_times` | Minutes between two stops | `from_stop`, `to_stop`, `manual_min` (admin's estimate), `measured_avg`, `measured_count` (running average kept by the tracker function — no individual trips) ([D-031](DECISIONS.md#d-031)) |
 | `alerts` | Delays / cancellations / notices | `id`, `type` (`delay` / `cancel` / `info`), `message`, `delay_min`, `trip_ids` (affected runs), `created_at`, `expires_at` |
-| `bus_position` | **Latest position only** (one row, overwritten) | `lat`, `lng`, `speed`, `heading`, `battery`, `recorded_at` |
+| `bus_position` | **Latest position only** (one row, overwritten) | `lat`, `lng`, `speed`, `heading`, `battery`, `recorded_at`; plus `at_stop`, `last_stop`, `left_at` — a note used to time the trip to the next stop, overwritten constantly and cleared when not tracking |
 | `settings` | One row of admin settings | `admin_email`, `service_hours`, `margin_minutes`, `paused`, `paused_until`, `student_passcode_hash`, `device_key_hash` |
 | `passcode_attempts` | Wrong passcode attempts (kept 15 min) for brute-force protection | `client`, `attempted_at` |
 
@@ -217,7 +228,9 @@ Access rules:
 - Only the logged-in admin can **write** `stops`, `trips`, `alerts`, and the service hours / pause in `settings`. The
   passcode hashes can only be changed through `set_student_passcode` (or directly in the Supabase dashboard).
 - Only the tracker (via its secret key, checked by `report_position`) can **write** `bus_position`. Outside service
-  hours or while paused, only its battery and "last seen" time are stored — not its location.
+  hours or while live tracking is off, only its battery and "last seen" time are stored — not its location.
+- `travel_times` can be read by anyone (needed for the estimates) and changed only through `save_travel_times`
+  (admin, her own estimates) and `report_position` (the measured averages).
 
 ## 8. GPS tracker
 
@@ -257,7 +270,7 @@ Requirements that still apply to the setup:
 - The bus's position is treated as the **driver's personal data**: consent from the driver(s) is required before going
   live.
 - **Only the latest position is stored**; no movement history.
-- The live position is shown **only during service hours** and **never while tracking is paused** (e.g. bus rented out)
+- The live position is shown **only during service hours** and **never while live tracking is switched off** (e.g. bus rented out)
   ([D-005](DECISIONS.md#d-005), [D-012](DECISIONS.md#d-012)). Outside service hours the device stops sending.
   The site itself is available 24/7.
 - Admin password: strong, never shared in the repository; all secrets/keys live outside the code (environment
@@ -316,7 +329,8 @@ The dean agreed verbally (2026-10-22). Before going live, get written agreement 
       live location, no student data, only the latest position stored, tracking only in service hours, pause
       switch for rentals.
 - [ ] **Driver(s):** consent to a GPS tracker on the bus they drive — what is tracked, when, who can see it, that no
-      history is kept, and that they can ask questions or withdraw.
+      history is kept, and that they can ask questions or withdraw. Include a short note that the site keeps an
+      **average** of how long the bus takes between stops (D-031) — averages only, no individual trips.
 - [ ] **Privacy notice** for the site (a draft is already at `privacy.html`; the team will rewrite it in their own
       words).
 - [ ] **Disclaimer:** "student project, not an official university service; times are a guide" — currently in the

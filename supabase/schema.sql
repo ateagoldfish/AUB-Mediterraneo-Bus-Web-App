@@ -25,8 +25,9 @@ create table public.stops (
 create table public.trips (
   id uuid primary key default gen_random_uuid(),
   days int[] not null check (cardinality(days) > 0 and days <@ array[0,1,2,3,4,5,6]),  -- 0 = Sunday
-  direction text not null check (direction in ('to_campus', 'to_dorms')),
-  times jsonb not null default '{}',       -- { "anavargos": "08:30", "tepak": "08:40" }
+  stop_ids text[] not null check (cardinality(stop_ids) >= 2),  -- stops in the order visited
+  direction text not null check (direction in ('to_campus', 'to_dorms')),  -- set from stop_ids
+  times jsonb not null default '{}',       -- typed times only, e.g. { "anavargos": "08:30" }; others are estimated
   note text not null default '',
   tracked boolean not null default true    -- false = another vehicle, not on the live map
 );
@@ -53,7 +54,22 @@ create table public.settings (
   device_key_hash text
 );
 
+-- Travel time between two stops (D-031). manual_min is the admin's estimate;
+-- measured_avg / measured_count are a running average kept by report_position.
+-- Only the average and the number of trips are stored — never individual trips.
+create table public.travel_times (
+  from_stop text not null references public.stops (id),
+  to_stop text not null references public.stops (id),
+  manual_min int check (manual_min between 1 and 180),
+  measured_avg real,
+  measured_count int not null default 0,
+  primary key (from_stop, to_stop),
+  check (from_stop <> to_stop)
+);
+
 -- Exactly one row: the latest position only, no history (D-010).
+-- at_stop / last_stop / left_at are a small, constantly overwritten note used to time
+-- the trip to the next stop ("left Tepak at 08:41"); they are cleared when not tracking.
 create table public.bus_position (
   id int primary key default 1 check (id = 1),
   lat double precision,
@@ -61,7 +77,10 @@ create table public.bus_position (
   speed real,
   heading real,
   battery int,
-  recorded_at timestamptz
+  recorded_at timestamptz,
+  at_stop text,
+  last_stop text,
+  left_at timestamptz
 );
 
 -- Wrong passcode attempts, kept 20 minutes, for brute-force protection (D-028).
@@ -152,8 +171,10 @@ begin
 end;
 $$;
 
--- The GPS tracker calls this. Outside service hours or while paused it only records
--- that it is alive (and its battery), not where it is.
+-- The GPS tracker calls this. Outside service hours or while tracking is off it only
+-- records that it is alive (and its battery), not where it is.
+-- It also times trips between stops: when the bus leaves a stop it notes the time, and
+-- when it reaches a different stop it adds the trip's duration to that pair's average.
 create function public.report_position(
   device_key text, lat double precision default null, lng double precision default null,
   speed real default null, heading real default null, battery int default null
@@ -161,7 +182,13 @@ create function public.report_position(
 language plpgsql volatile security definer set search_path = public as $$
 declare
   s settings;
+  p bus_position;
   tracking boolean;
+  here text;                -- the stop the bus is at now (within 150 m), if any
+  new_at text;
+  new_last text;
+  new_left timestamptz;
+  trip_minutes real;
 begin
   select * into s from settings where id = 1;
   if s.device_key_hash is null or device_key is null
@@ -169,16 +196,56 @@ begin
     raise exception 'invalid device key' using errcode = '28000';
   end if;
   tracking := in_service() and not is_paused();
-  insert into bus_position (id, lat, lng, speed, heading, battery, recorded_at)
+  select * into p from bus_position where id = 1;
+
+  if not tracking then
+    -- Forget the stop note, so nothing is timed across a break in tracking.
+    new_at := null; new_last := null; new_left := null;
+  elsif report_position.lat is null or report_position.lng is null then
+    -- No GPS fix right now: keep the note as it is.
+    new_at := p.at_stop; new_last := p.last_stop; new_left := p.left_at;
+  else
+    -- Distance in metres (flat-earth approximation, fine over a few hundred metres).
+    select stops.id into here from stops
+    where stops.lat is not null and stops.lng is not null
+      and sqrt(power((stops.lat - report_position.lat) * 111320, 2)
+             + power((stops.lng - report_position.lng) * 111320 * cos(radians(stops.lat)), 2)) < 150
+    order by power(stops.lat - report_position.lat, 2) + power(stops.lng - report_position.lng, 2)
+    limit 1;
+
+    if here is not null then
+      -- Just arrived at a different stop from the one it last left: time the trip.
+      if p.at_stop is null and p.last_stop is not null and p.last_stop <> here and p.left_at is not null then
+        trip_minutes := extract(epoch from now() - p.left_at) / 60;
+        if trip_minutes between 1 and 90 then
+          insert into travel_times (from_stop, to_stop, measured_avg, measured_count)
+          values (p.last_stop, here, trip_minutes, 1)
+          on conflict (from_stop, to_stop) do update set
+            measured_avg = (coalesce(travel_times.measured_avg, 0) * travel_times.measured_count + trip_minutes)
+                           / (travel_times.measured_count + 1),
+            measured_count = travel_times.measured_count + 1;
+        end if;
+      end if;
+      new_at := here; new_last := p.last_stop; new_left := p.left_at;
+    elsif p.at_stop is not null then
+      -- Just left a stop.
+      new_at := null; new_last := p.at_stop; new_left := now();
+    else
+      new_at := null; new_last := p.last_stop; new_left := p.left_at;
+    end if;
+  end if;
+
+  insert into bus_position (id, lat, lng, speed, heading, battery, recorded_at, at_stop, last_stop, left_at)
   values (1,
     case when tracking then report_position.lat end,
     case when tracking then report_position.lng end,
     case when tracking then report_position.speed end,
     case when tracking then report_position.heading end,
-    report_position.battery, now())
+    report_position.battery, now(), new_at, new_last, new_left)
   on conflict (id) do update set
     lat = excluded.lat, lng = excluded.lng, speed = excluded.speed, heading = excluded.heading,
-    battery = excluded.battery, recorded_at = excluded.recorded_at;
+    battery = excluded.battery, recorded_at = excluded.recorded_at,
+    at_stop = excluded.at_stop, last_stop = excluded.last_stop, left_at = excluded.left_at;
   -- Tells the tracker how long to wait before the next report (it can sleep when not tracking).
   return json_build_object('tracking', tracking, 'next_report_seconds', case when tracking then 10 else 300 end);
 end;
@@ -223,10 +290,24 @@ language plpgsql volatile security definer set search_path = public as $$
 begin
   if not is_admin() then raise exception 'not allowed' using errcode = '42501'; end if;
   delete from trips where true;
-  insert into trips (id, days, direction, times, note, tracked)
-  select id, days, direction, coalesce(times, '{}'), coalesce(note, ''), coalesce(tracked, true)
+  insert into trips (id, days, stop_ids, direction, times, note, tracked)
+  select id, days, stop_ids,
+    case when stop_ids[cardinality(stop_ids)] = 'campus' then 'to_campus' else 'to_dorms' end,
+    coalesce(times, '{}'), coalesce(note, ''), coalesce(tracked, true)
   from jsonb_to_recordset(new_trips)
-    as x(id uuid, days int[], direction text, times jsonb, note text, tracked boolean);
+    as x(id uuid, days int[], stop_ids text[], times jsonb, note text, tracked boolean);
+end;
+$$;
+
+-- Saves the admin's own travel-time estimates. Measured averages are left alone.
+create function public.save_travel_times(new_times jsonb) returns void
+language plpgsql volatile security definer set search_path = public as $$
+begin
+  if not is_admin() then raise exception 'not allowed' using errcode = '42501'; end if;
+  insert into travel_times (from_stop, to_stop, manual_min)
+  select from_stop, to_stop, manual_min
+  from jsonb_to_recordset(new_times) as x(from_stop text, to_stop text, manual_min int)
+  on conflict (from_stop, to_stop) do update set manual_min = excluded.manual_min;
 end;
 $$;
 
@@ -234,6 +315,7 @@ $$;
 
 alter table public.stops enable row level security;
 alter table public.trips enable row level security;
+alter table public.travel_times enable row level security;
 alter table public.alerts enable row level security;
 alter table public.settings enable row level security;
 alter table public.bus_position enable row level security;
@@ -243,6 +325,8 @@ create policy "anyone reads stops" on public.stops for select using (true);
 create policy "admin edits stops" on public.stops for all using (is_admin()) with check (is_admin());
 
 create policy "anyone reads trips" on public.trips for select using (true);
+create policy "anyone reads travel times" on public.travel_times for select using (true);
+-- travel_times is changed only through save_travel_times (admin) and report_position (tracker).
 create policy "admin edits trips" on public.trips for all using (is_admin()) with check (is_admin());
 
 create policy "anyone reads active alerts" on public.alerts for select
@@ -268,6 +352,14 @@ insert into public.stops (id, name, lat, lng, sort, weekend_only) values
   ('tepak', 'Tepak Dorms', 34.776953, 32.434246, 2, false),
   ('oldtown', 'Old Town', null, null, 3, true),
   ('campus', 'Campus', 34.767469, 32.417171, 4, false);
+
+-- Starting travel times in minutes: guesses (only Anavargos→Tepak and Campus→Old Town come
+-- from the old schedule). The admin can change them; measured averages take over later.
+insert into public.travel_times (from_stop, to_stop, manual_min) values
+  ('anavargos', 'tepak', 10), ('tepak', 'anavargos', 10),
+  ('tepak', 'campus', 8), ('campus', 'tepak', 8),
+  ('tepak', 'oldtown', 10), ('oldtown', 'tepak', 10),
+  ('oldtown', 'campus', 5), ('campus', 'oldtown', 5);
 
 -- Replace the email with the project email before running (D-017).
 insert into public.settings (id, admin_email) values (1, 'CHANGE-ME@example.com');

@@ -25,7 +25,7 @@
 | [D-009](#d-009) | Where to host the website and which domain | Superseded by D-019 |
 | [D-010](#d-010) | Store only the latest bus position | Proposed |
 | [D-011](#d-011) | All UI text in one strings file; English first | Decided |
-| [D-012](#d-012) | Bus is rented out at times → admin "pause tracking" switch | Proposed |
+| [D-012](#d-012) | Bus is rented out at times → admin "pause tracking" switch | Superseded by D-032 |
 | [D-013](#d-013) | Live map behind one shared passcode from the registrar | Decided |
 | [D-014](#d-014) | No student data at all → no emails; alerts shown on the site | Decided |
 | [D-015](#d-015) | GPS tracker: LilyGO T-SIM7670G, battery/USB powered | Decided |
@@ -36,14 +36,18 @@
 | [D-020](#d-020) | Visual style follows aubmed.ac.cy | Decided |
 | [D-021](#d-021) | No route line on the map — route isn't fixed | Decided |
 | [D-022](#d-022) | Site works without a timetable; admin sets service hours | Decided |
-| [D-023](#d-023) | Log only stop arrival times, to help build a timetable? | Open |
+| [D-023](#d-023) | Log only stop arrival times, to help build a timetable? | Superseded by D-031 |
 | [D-024](#d-024) | Timetable stored as trips; tracked vs. untracked vehicles | Superseded by D-026 |
 | [D-025](#d-025) | Plain HTML/JS, no build step; demo mode until Supabase exists | Decided |
-| [D-026](#d-026) | Timetable: one `trips` table with times per stop | Decided |
+| [D-026](#d-026) | Timetable: one `trips` table with times per stop | Superseded by D-031 |
 | [D-027](#d-027) | Position by polling; passcode checked in the database | Decided |
 | [D-028](#d-028) | Passcode limits per network, with an admin "Unblock now" | Decided |
 | [D-029](#d-029) | Written permissions and own-words text before launch | Open |
 | [D-030](#d-030) | Relative paths; free GitHub Pages preview for testing | Decided |
+| [D-031](#d-031) | Timetable editor: day view, stops tapped in order, estimated times, measured averages | Decided |
+| [D-032](#d-032) | One live tracking ON/OFF switch at the top (replaces "Pause") | Decided |
+| [D-033](#d-033) | Admin layout: sticky section tabs, stacked header buttons | Decided |
+| [D-034](#d-034) | English map labels via CARTO (free key) | Open |
 
 ---
 
@@ -186,7 +190,7 @@
 
 <a id="d-012"></a>
 ## D-012 — Bus is rented out at times → admin "pause tracking" switch
-- **Date:** 2026-10-22 · **Status:** Proposed
+- **Date:** 2026-10-22 · **Status:** Superseded by [D-032](#d-032)
 - **Context:** The bus is owned by the university but is occasionally rented out for outside events, sometimes possibly
   within normal service hours. Hiding the location outside service hours (D-005) does not cover that case.
 - **Proposal:** Two independent safeguards:
@@ -351,7 +355,7 @@
 
 <a id="d-023"></a>
 ## D-023 — Log only stop arrival times, to help build a timetable?
-- **Date:** 2026-10-29 · **Status:** Open
+- **Date:** 2026-10-29 · **Status:** Superseded by [D-031](#d-031)
 - **Idea:** Instead of storing the bus's path (ruled out by D-010), record only **when the bus arrives at each stop**
   (e.g. "Dorm Anavargos, 08:12"). After a few weeks this shows when the bus actually runs, which could help the
   university set a realistic timetable.
@@ -391,7 +395,7 @@
 
 <a id="d-026"></a>
 ## D-026 — Timetable: one `trips` table with times per stop
-- **Date:** 2026-10-30 · **Status:** Decided (replaces D-024)
+- **Date:** 2026-10-30 · **Status:** Superseded by [D-031](#d-031)
 - **Decision:** Same idea as D-024 — the timetable is a list of runs, each with days, a direction, a note and an
   "on live map" flag — but each run's stop times are stored inside the run (`times`), instead of a separate
   `trip_times` table.
@@ -417,7 +421,7 @@
 
 <a id="d-028"></a>
 ## D-028 — Passcode limits per network, with an admin "Unblock now"
-- **Date:** 2026-10-31 · **Status:** Decided (changes the limit from D-013)
+- **Date:** 2026-10-30 · **Status:** Decided (changes the limit from D-013)
 - **Problem found:** The first version blocked a network after **5** wrong passcodes in 5 minutes. A whole dorm shares
   one Wi-Fi network (one internet address), so one student mistyping five times would have blocked **every student
   in that building**. There was also no way to undo a block early.
@@ -432,7 +436,7 @@
 
 <a id="d-029"></a>
 ## D-029 — Written permissions and own-words text before launch
-- **Date:** 2026-10-31 · **Status:** Open
+- **Date:** 2026-10-30 · **Status:** Open
 - **Context:** The dean agreed verbally. Rather than rely on that, the team wants written permission from the university
   and the driver(s), plus a light privacy notice and disclaimer. The team also wants every longer piece of text on the
   site written in their own words (the same standard as their other project).
@@ -444,7 +448,7 @@
 
 <a id="d-030"></a>
 ## D-030 — Relative paths; free GitHub Pages preview for testing
-- **Date:** 2026-10-31 · **Status:** Decided
+- **Date:** 2026-10-30 · **Status:** Decided
 - **Context:** The team's laptop is too old to run things locally comfortably, and the Cloudflare account can't be
   created until the project email exists.
 - **Decision:**
@@ -454,3 +458,60 @@
     `https://ateagoldfish.github.io/AUB-Mediterraneo-Bus-Web-App/`. It runs in demo mode only. Steps in SETUP.md.
 - **Note:** The preview address contains "AUB" (from the repository name). It is only for the team's testing and is
   hidden from search engines; the public site will be `dormshuttle.com` (D-019).
+
+<a id="d-031"></a>
+## D-031 — Timetable editor: day view, stops tapped in order, estimated times, measured averages
+- **Date:** 2026-10-30 · **Status:** Decided (replaces D-026 and D-023)
+- **Problem:** With ~30 runs shown as big numbered cards, the admin timetable was hard to read.
+- **Decision:**
+  - **Day view:** the admin picks a day and sees that day's runs as one short line each, sorted by time. Tapping a run
+    opens its editor; only one is open at a time.
+  - **Stops tapped in order:** each run stores its stops in the order the bus visits them (`stop_ids`). The direction
+    ("to campus" / "to dorms") follows from the last stop, so there is no separate direction to set.
+  - **Estimated times:** only the first stop's time is required. Later stops show an estimate (previous stop + travel
+    time), marked "~" on both pages. Any estimate can be typed over, e.g. for a known delay at a stop.
+  - **Travel times:** a small table of minutes per pair of stops. It starts with the admin's own estimates.
+  - **Measured averages (the team's idea):** when the tracker leaves a stop and reaches another, the database adds
+    that trip's duration to a **running average and a trip count** for the pair. After 5 trips the average replaces
+    the admin's estimate. Because routes vary by driver, the average reflects that naturally.
+- **Privacy:** only the average and the count are kept — never individual trips or timestamps. The short note used
+  to time a trip ("left Tepak at 08:41") lives in the single overwritten position row and is cleared whenever tracking
+  is off. This replaces the idea in D-023 (logging arrival times), which would have kept more. A sentence about the
+  averages goes into the driver consent note and the privacy page (SPEC §13).
+- **Tested:** against a local copy of the database (a timed trip updates the average once, waiting at a stop doesn't
+  count twice, the note is cleared when tracking is off, only the admin can change her estimates).
+
+<a id="d-032"></a>
+## D-032 — One live tracking ON/OFF switch at the top (replaces "Pause")
+- **Date:** 2026-10-30 · **Status:** Decided (replaces D-012's pause card)
+- **Context:** The team asked for a manual switch that overrides everything, easy to find in an emergency. The
+  existing "Pause tracking" card did almost the same thing, further down the page; two similar controls would be
+  confusing in a hurry.
+- **Decision:** One big **Live tracking ON/OFF** switch directly under the tracker status. OFF takes effect for students
+  within ~10 seconds, overrides service hours, and stores no location while off. Under it, as part of the same card:
+  an optional "turn it back on automatically at" time (what Pause used to offer, e.g. for rentals).
+- **Students see:** "Live tracking is unavailable right now." (no reason given).
+- **Behind the scenes:** the same `paused` / `paused_until` settings as before, so the database rules didn't change.
+
+<a id="d-033"></a>
+## D-033 — Admin layout: sticky section tabs, stacked header buttons
+- **Date:** 2026-10-30 · **Status:** Decided
+- **Problems found by the team on a phone:** the two header buttons were different sizes and wrapped onto two lines;
+  a tapped section tab stayed looking "selected" after scrolling away, which read as a mistake.
+- **Decision:**
+  - Header buttons stack vertically on phones, same width, one line each.
+  - The section tabs stick to the top of the screen while scrolling and highlight whichever section is in view —
+    so the highlight is always correct. A menu was considered but adds a tap for only four sections.
+  - Hover effects only apply on devices with a mouse (on phones a tapped button kept its hover look).
+  - Date/time boxes no longer stick out of their cards on iPhones.
+
+<a id="d-034"></a>
+## D-034 — English map labels via CARTO (free key)
+- **Date:** 2026-10-30 · **Status:** Open (waiting for the project email)
+- **Problem:** OpenStreetMap's standard map shows place names in Greek; many students don't read Greek.
+- **Plan:** Switch to CARTO's map style, free for non-commercial use (up to 5 million map images a month — far more
+  than needed) with attribution. Since 2026 it needs a free API key, requested by email (no account) — to be
+  requested from the project email. Once the key is in, check that the labels are actually in English; if not,
+  look again.
+- **Rejected:** MapTiler's free plan (5,000 visits a month — too few for ~400 students).
+- **Meanwhile:** the stop names on our map are already in English.

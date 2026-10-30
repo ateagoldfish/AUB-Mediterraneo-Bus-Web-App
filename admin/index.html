@@ -33,7 +33,7 @@
     <p id="admin-loading" class="muted" data-i18n="app.loading"></p>
 
     <div id="login" class="card page-narrow" hidden>
-      <h1 style="font-size:1.3rem;margin-bottom:12px" data-i18n="admin.loginTitle"></h1>
+      <h1 class="login-title" data-i18n="admin.loginTitle"></h1>
       <form id="login-form" novalidate>
         <label for="login-passcode" data-i18n="admin.loginLabel"></label>
         <input id="login-passcode" type="password" autocomplete="current-password" required>
@@ -43,14 +43,35 @@
     </div>
 
     <div id="panel" hidden>
-      <nav class="admin-nav">
+      <!-- Sticks to the top while scrolling; highlights the section in view (D-033). -->
+      <nav class="admin-nav" id="admin-nav">
         <a href="#alerts" data-i18n="admin.nav.alerts"></a>
-        <a href="#tracking" data-i18n="admin.nav.tracking"></a>
+        <a href="#hours" data-i18n="admin.nav.hours"></a>
         <a href="#timetable" data-i18n="admin.nav.timetable"></a>
         <a href="#passcodes" data-i18n="admin.nav.passcodes"></a>
       </nav>
 
       <div id="tracker-status" class="banner" role="status"></div>
+
+      <!-- Live tracking ON/OFF: at the top so it can be found quickly in an emergency (D-032). -->
+      <div id="tracking-card" class="card tracking-card">
+        <div class="switch-row">
+          <div>
+            <h2 data-i18n="admin.switch.title"></h2>
+            <p id="tracking-status" class="tracking-status"></p>
+          </div>
+          <button id="tracking-switch" class="switch" type="button" role="switch" aria-checked="true"
+                  data-i18n-aria-label="admin.switch.title">
+            <span class="switch-knob"></span><span id="switch-label" class="switch-label"></span>
+          </button>
+        </div>
+        <div id="resume-field" class="field">
+          <label for="resume-at" data-i18n="admin.switch.resumeAt"></label>
+          <input id="resume-at" type="datetime-local">
+        </div>
+        <p class="muted small" data-i18n="admin.switch.help"></p>
+        <p id="tracking-msg" class="form-msg" role="alert" hidden></p>
+      </div>
 
       <!-- Alerts -->
       <section id="alerts" class="admin-section">
@@ -81,8 +102,8 @@
               <label for="alert-message" data-i18n="admin.alerts.message"></label>
               <textarea id="alert-message" maxlength="300" data-i18n-placeholder="admin.alerts.messagePlaceholder"></textarea>
             </div>
-            <fieldset class="field" id="affects-field" style="border:0;padding:0;margin:0 0 14px">
-              <legend style="font-weight:600;color:var(--ink);font-size:.9rem;margin-bottom:6px" data-i18n="admin.alerts.affects"></legend>
+            <fieldset class="field plain-fieldset" id="affects-field">
+              <legend data-i18n="admin.alerts.affects"></legend>
               <div id="affects-list" class="check-list"></div>
             </fieldset>
             <div class="field">
@@ -95,25 +116,10 @@
         </div>
       </section>
 
-      <!-- Live tracking -->
-      <section id="tracking" class="admin-section">
-        <h2 class="eyebrow" data-i18n="admin.nav.tracking"></h2>
+      <!-- Service hours -->
+      <section id="hours" class="admin-section">
+        <h2 class="eyebrow" data-i18n="admin.hours.title"></h2>
         <div class="card">
-          <h2 data-i18n="admin.pause.title"></h2>
-          <p class="muted small" data-i18n="admin.pause.help"></p>
-          <p id="pause-status" style="font-weight:700;color:var(--ink)"></p>
-          <form id="pause-form" novalidate>
-            <div id="pause-until-field" class="field">
-              <label for="pause-until" data-i18n="admin.pause.until"></label>
-              <input id="pause-until" type="datetime-local">
-            </div>
-            <button id="pause-btn" class="btn" type="submit" data-i18n="admin.pause.pause"></button>
-            <button id="resume-btn" class="btn btn-outline" type="button" data-i18n="admin.pause.resume"></button>
-            <p class="form-msg" hidden></p>
-          </form>
-        </div>
-        <div class="card">
-          <h2 data-i18n="admin.hours.title"></h2>
           <p class="muted small" data-i18n="admin.hours.help"></p>
           <form id="hours-form" novalidate>
             <div id="hours-grid" class="hours-grid"></div>
@@ -127,19 +133,24 @@
       <section id="timetable" class="admin-section">
         <h2 class="eyebrow" data-i18n="admin.nav.timetable"></h2>
         <p class="muted small" data-i18n="admin.tt.help"></p>
-        <div class="form-row" style="margin-bottom:12px">
-          <div>
-            <label for="tt-filter" data-i18n="admin.tt.filter"></label>
-            <select id="tt-filter"></select>
-          </div>
-        </div>
-        <div id="trip-list"></div>
+        <div id="day-picker" class="day-picker" role="group" data-i18n-aria-label="admin.tt.days"></div>
+        <div id="trip-list" class="trip-list"></div>
         <p><button id="add-trip" class="btn btn-outline" type="button" data-i18n="admin.tt.add"></button></p>
         <div class="sticky-save">
           <button id="save-trips" class="btn" type="button" data-i18n="admin.tt.save"></button>
           <button id="clear-trips" class="btn btn-outline btn-small" type="button" data-i18n="admin.tt.clearAll"></button>
           <div id="trips-msg" class="form-msg" role="alert" hidden></div>
           <div id="trips-unsaved" class="form-msg form-error" data-i18n="admin.tt.unsaved" hidden></div>
+        </div>
+
+        <div class="card">
+          <h2 data-i18n="admin.travel.title"></h2>
+          <p id="travel-help" class="muted small"></p>
+          <form id="travel-form" novalidate>
+            <div id="travel-list" class="travel-list"></div>
+            <p><button class="btn" type="submit" data-i18n="admin.travel.save"></button></p>
+            <p class="form-msg" hidden></p>
+          </form>
         </div>
       </section>
 
