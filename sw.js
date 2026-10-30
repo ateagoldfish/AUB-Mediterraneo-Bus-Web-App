@@ -4,7 +4,7 @@
 // Files are served from the copy and refreshed in the background, so a new
 // version appears on the next visit after it is published.
 
-const CACHE = 'dormshuttle-v2';
+const CACHE = 'dormshuttle-v3';
 const FILES = [
   './', './index.html', './privacy.html', './404.html', './manifest.webmanifest',
   './src/config.js', './src/strings/en.json', './src/css/style.css',
