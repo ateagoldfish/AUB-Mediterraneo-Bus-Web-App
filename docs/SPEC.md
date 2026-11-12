@@ -4,7 +4,7 @@
 > It only ever describes the **present state**. When something changes, edit it in place; the reasoning and history
 > belong in [`DECISIONS.md`](DECISIONS.md). Items marked **(proposed)** are not yet confirmed — see the linked decision.
 
-_Last updated: 2026-10-30_
+_Last updated: 2026-11-12_
 
 ---
 
@@ -198,7 +198,8 @@ and what to do. Details in [D-018](DECISIONS.md#d-018).
 | Front end | Static site (HTML/CSS/JS), PWA | No server code on the web host |
 | Map | Leaflet + OpenStreetMap tiles (labels in Greek); to switch to CARTO for English labels once a free key is requested ([D-034](DECISIONS.md#d-034)) | Free; attribution required |
 | Back end | Supabase (EU region) | Postgres DB, Auth (admin only), database functions for the tracker and passcode check — all in `supabase/schema.sql` |
-| Hosting | Cloudflare Pages, domain `dormshuttle.com` | See [D-019](DECISIONS.md#d-019) |
+| Hosting | Cloudflare Pages, domain `dormshuttle.com` | See [D-035](DECISIONS.md#d-035) |
+| Project email | `dormshuttle@proton.me` — owner account for Cloudflare, Supabase and the CARTO key | See [D-035](DECISIONS.md#d-035) |
 | GPS ingestion | Tracker posts directly to the `report_position` database function over HTTPS (no relay server) | See [D-015](DECISIONS.md#d-015), [`TRACKER.md`](TRACKER.md) |
 | Demo mode | While no Supabase project is set in `src/config.js`, the site runs on example data with a simulated bus, stored in the browser | [D-025](DECISIONS.md#d-025) |
 | Source code | GitHub: `ateagoldfish/AUB-Mediterraneo-Bus-Web-App` | |
@@ -304,7 +305,7 @@ page code. Adding a language later means copying that file and translating it. S
 | When | Milestone |
 |---|---|
 | Week of 19 Oct | ✅ Tracker and parts ordered. Collect stops/timetable; driver consent; DPO contact |
-| Week of 26 Oct | Project email account; domain + hosting ([D-019](DECISIONS.md#d-019)); Supabase project |
+| Week of 26 Oct | ✅ Project email (`dormshuttle@proton.me`, done 12 Nov). Next: domain + hosting, Supabase project, CARTO key ([D-035](DECISIONS.md#d-035)) |
 | Weeks of 26 Oct, 2 Nov | Student page: timetable + map with route (fake bus position); tracker firmware on the bench |
 | Week of 9 Nov | Supabase, admin page, alerts, passcode, pause switch |
 | Week of 16 Nov | Tracker connected end-to-end (or phone stand-in if the device is late) |

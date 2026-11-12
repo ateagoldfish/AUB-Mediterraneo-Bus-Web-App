@@ -32,7 +32,7 @@
 | [D-016](#d-016) | Look: university colours, own bus icon, no logo | Decided |
 | [D-017](#d-017) | Admin logs in with a passcode only | Decided |
 | [D-018](#d-018) | Every failure has its own clear screen | Decided |
-| [D-019](#d-019) | Cloudflare + dormshuttle.com, under a project Gmail | Decided |
+| [D-019](#d-019) | Cloudflare + dormshuttle.com, under a project Gmail | Superseded by D-035 |
 | [D-020](#d-020) | Visual style follows aubmed.ac.cy | Decided |
 | [D-021](#d-021) | No route line on the map — route isn't fixed | Decided |
 | [D-022](#d-022) | Site works without a timetable; admin sets service hours | Decided |
@@ -48,6 +48,7 @@
 | [D-032](#d-032) | One live tracking ON/OFF switch at the top (replaces "Pause") | Decided |
 | [D-033](#d-033) | Admin layout: sticky section tabs, stacked header buttons | Decided |
 | [D-034](#d-034) | English map labels via CARTO (free key) | Open |
+| [D-035](#d-035) | Project email is dormshuttle@proton.me | Decided |
 
 ---
 
@@ -307,7 +308,7 @@
 
 <a id="d-019"></a>
 ## D-019 — Cloudflare + dormshuttle.com, under a project Gmail
-- **Date:** 2026-10-29 · **Status:** Decided (replaces D-009)
+- **Date:** 2026-10-29 · **Status:** Superseded by [D-035](#d-035)
 - **Decision:**
   - A new Gmail account made only for this project is the owner account for everything (D-008).
   - Domain **dormshuttle.com**, bought through Cloudflare Registrar with that account.
@@ -515,3 +516,15 @@
   look again.
 - **Rejected:** MapTiler's free plan (5,000 visits a month — too few for ~400 students).
 - **Meanwhile:** the stop names on our map are already in English.
+
+<a id="d-035"></a>
+## D-035 — Project email is dormshuttle@proton.me
+- **Date:** 2026-11-12 · **Status:** Decided (replaces the Gmail part of D-019; the rest of D-019 stands)
+- **Decision:** The project's owner account is **`dormshuttle@proton.me`** (Proton Mail, free plan). Cloudflare (domain
+  `dormshuttle.com` + Pages hosting), Supabase, the CARTO map key and, where possible, the tracker's SIM are
+  registered with it. It is also the admin login email (D-017).
+- **Why Proton:** Gmail and Outlook sign-ups were repeatedly blocked ("unusual activity", phone verification that never
+  finished) from the team's devices and networks. Proton worked and needs no phone number.
+- **Keep in mind:** Proton may delete free accounts that are not used for over a year — log in now and then, and
+  hand the login to the university at handover. The password and recovery details live in a password manager, never
+  in this repository.
