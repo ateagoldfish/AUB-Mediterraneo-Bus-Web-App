@@ -4,7 +4,7 @@
 // Files are served from the copy and refreshed in the background, so a new
 // version appears on the next visit after it is published.
 
-const CACHE = 'dormshuttle-v4';
+const CACHE = 'dormshuttle-v5';
 const FILES = [
   './', './index.html', './privacy.html', './404.html', './manifest.webmanifest',
   './src/config.js', './src/strings/en.json', './src/css/style.css',
@@ -16,8 +16,23 @@ const FILES = [
   './src/img/bus.svg', './src/img/icon.svg', './src/img/icon-192.png',
 ];
 
+// Some hosts answer with a redirect (Cloudflare Workers sends privacy.html to /privacy).
+// Browsers refuse to show a page from this copy if it was saved from a redirect, so a
+// clean, redirect-free copy is stored instead.
+async function cleanCopy(response) {
+  if (!response.redirected) return response;
+  return new Response(await response.blob(), {
+    status: response.status, statusText: response.statusText, headers: response.headers,
+  });
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(FILES)).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE)
+    .then((cache) => Promise.all(FILES.map(async (file) => {
+      const response = await fetch(file, { cache: 'no-cache' });
+      if (response.ok) await cache.put(file, await cleanCopy(response));
+    })))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
@@ -38,8 +53,8 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(caches.open(CACHE).then(async (cache) => {
     const cached = await cache.match(event.request, { ignoreSearch: true });
     const fresh = fetch(event.request)
-      .then((response) => {
-        if (response.ok) cache.put(event.request, response.clone());
+      .then(async (response) => {
+        if (response.ok) await cache.put(event.request, await cleanCopy(response.clone()));
         return response;
       })
       .catch(() => null);

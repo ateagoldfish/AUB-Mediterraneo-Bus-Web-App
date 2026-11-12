@@ -48,7 +48,8 @@
 | [D-032](#d-032) | One live tracking ON/OFF switch at the top (replaces "Pause") | Decided |
 | [D-033](#d-033) | Admin layout: sticky section tabs, stacked header buttons | Decided |
 | [D-034](#d-034) | English map labels via CARTO (free key) | Open |
-| [D-035](#d-035) | Project email is dormshuttle@proton.me | Decided |
+| [D-035](#d-035) | Project email is dormshuttle@proton.me | Decided (domain part replaced by D-036) |
+| [D-036](#d-036) | Free Cloudflare address, no domain bought | Decided |
 
 ---
 
@@ -519,7 +520,7 @@
 
 <a id="d-035"></a>
 ## D-035 — Project email is dormshuttle@proton.me
-- **Date:** 2026-11-12 · **Status:** Decided (replaces the Gmail part of D-019; the rest of D-019 stands)
+- **Date:** 2026-11-12 · **Status:** Decided (replaces the Gmail part of D-019); the domain part is replaced by [D-036](#d-036)
 - **Decision:** The project's owner account is **`dormshuttle@proton.me`** (Proton Mail, free plan). Cloudflare (domain
   `dormshuttle.com` + Pages hosting), Supabase, the CARTO map key and, where possible, the tracker's SIM are
   registered with it. It is also the admin login email (D-017).
@@ -528,3 +529,19 @@
 - **Keep in mind:** Proton may delete free accounts that are not used for over a year — log in now and then, and
   hand the login to the university at handover. The password and recovery details live in a password manager, never
   in this repository.
+
+<a id="d-036"></a>
+## D-036 — Free Cloudflare address, no domain bought
+- **Date:** 2026-11-12 · **Status:** Decided (replaces the domain part of D-019 / D-035)
+- **Decision:** No domain is bought. The site runs on Cloudflare's free plan at
+  **<https://dorm-shuttle.dormshuttle.workers.dev>**, under the project email.
+- **Why:** Buying `dormshuttle.com` at Cloudflare required saving a card for automatic renewals, which the team
+  didn't want to leave on file. The free address costs nothing, needs no card, and is enough for the project. For
+  handover it is simpler: the university can point its own address (e.g. `bus.<university domain>`) at the site
+  instead of taking over a domain.
+- **Workers instead of Pages:** Cloudflare set it up as a "Workers" project (its default now). For a plain website
+  this makes no practical difference, except two things found when testing it:
+  - Cloudflare redirects `page.html` to `/page`. Browsers refuse pages saved from a redirect in the offline copy, so
+    the second visit broke (e.g. "Privacy" failed). **Fixed** in `sw.js`, which now saves a redirect-free copy;
+    tested on a local server that redirects the same way.
+  - Wrong links show Cloudflare's plain "not found" page instead of ours — left for later (e.g. at handover).

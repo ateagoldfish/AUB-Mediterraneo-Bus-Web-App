@@ -198,7 +198,7 @@ and what to do. Details in [D-018](DECISIONS.md#d-018).
 | Front end | Static site (HTML/CSS/JS), PWA | No server code on the web host |
 | Map | Leaflet + OpenStreetMap tiles (labels in Greek); to switch to CARTO for English labels once a free key is requested ([D-034](DECISIONS.md#d-034)) | Free; attribution required |
 | Back end | Supabase (EU region) | Postgres DB, Auth (admin only), database functions for the tracker and passcode check — all in `supabase/schema.sql` |
-| Hosting | Cloudflare Pages, domain `dormshuttle.com` | See [D-035](DECISIONS.md#d-035) |
+| Hosting | Cloudflare (Workers, free), at <https://dorm-shuttle.dormshuttle.workers.dev> — no domain bought; deploys automatically from `main` | See [D-036](DECISIONS.md#d-036) |
 | Project email | `dormshuttle@proton.me` — owner account for Cloudflare, Supabase and the CARTO key | See [D-035](DECISIONS.md#d-035) |
 | GPS ingestion | Tracker posts directly to the `report_position` database function over HTTPS (no relay server) | See [D-015](DECISIONS.md#d-015), [`TRACKER.md`](TRACKER.md) |
 | Demo mode | While no Supabase project is set in `src/config.js`, the site runs on example data with a simulated bus, stored in the browser | [D-025](DECISIONS.md#d-025) |
@@ -288,7 +288,7 @@ personal ones ([D-008](DECISIONS.md#d-008)):
 |---|---|
 | GitHub repository | Transfer to a university GitHub account/organisation |
 | Supabase project | Transfer the project to the university's Supabase organisation |
-| Domain | Transfer, or the university points its own subdomain at the site |
+| Address | The university points its own subdomain (e.g. `bus.<university domain>`) at the Cloudflare site ([D-036](DECISIONS.md#d-036)) |
 | Hosting | Move static files (any host works) |
 | GPS tracker + SIM | Physical handover; SIM contract moved to university |
 
@@ -305,7 +305,7 @@ page code. Adding a language later means copying that file and translating it. S
 | When | Milestone |
 |---|---|
 | Week of 19 Oct | ✅ Tracker and parts ordered. Collect stops/timetable; driver consent; DPO contact |
-| Week of 26 Oct | ✅ Project email (`dormshuttle@proton.me`, done 12 Nov). Next: domain + hosting, Supabase project, CARTO key ([D-035](DECISIONS.md#d-035)) |
+| Week of 26 Oct | ✅ Project email (`dormshuttle@proton.me`, done 12 Nov). ✅ Hosting on Cloudflare (free address, [D-036](DECISIONS.md#d-036)). Next: Supabase project, CARTO key |
 | Weeks of 26 Oct, 2 Nov | Student page: timetable + map with route (fake bus position); tracker firmware on the bench |
 | Week of 9 Nov | Supabase, admin page, alerts, passcode, pause switch |
 | Week of 16 Nov | Tracker connected end-to-end (or phone stand-in if the device is late) |

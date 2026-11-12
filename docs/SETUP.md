@@ -33,15 +33,21 @@ Works right now, without the project email. The site runs in demo mode.
 
 When the real site is on Cloudflare, switch this off again (same page → Source: None) so there is only one copy.
 
-## 2. Put it online with Cloudflare Pages (demo mode is fine for this)
+## 2. Put it online with Cloudflare (done 2026-11-12)
 
-1. Log in to Cloudflare with the project email.
-2. **Workers & Pages → Create → Pages → Connect to Git**, and choose the GitHub repository.
-   (If Cloudflare offers "Workers" first, look for the Pages / "Import an existing Git repository" option.)
-3. Settings: **Framework preset: None**, **Build command: empty**, **Build output directory: `/`**.
-4. Deploy. The site appears at an address like `dormshuttle.pages.dev`. Every push to `main` updates it
-   automatically within a minute or two.
-5. Later: **Custom domains → `dormshuttle.com`** (the domain must be in the same Cloudflare account).
+The site runs on Cloudflare's free plan at <https://dorm-shuttle.dormshuttle.workers.dev>, logged in with the
+project email. It was set up as a **Workers** project connected to the GitHub repository (Cloudflare offers Workers
+by default now; for a plain site like this it works the same as Pages). Every push to `main` updates it within a
+minute or two. No domain was bought (D-036).
+
+Good to know:
+- Cloudflare shortens addresses (`privacy.html` → `/privacy`). The offline copy (`sw.js`) handles that.
+- A wrong link shows Cloudflare's plain "not found" page instead of our `404.html`. Fixable later with a small
+  settings file, e.g. at handover.
+- To give it a nicer address later (e.g. `bus.<university domain>`): the project → **Settings → Domains & Routes**.
+
+Once the university is happy with this address, switch the GitHub Pages preview off (step 1b) so there is only one
+copy.
 
 ## 3. Create the Supabase project
 
