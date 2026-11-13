@@ -4,7 +4,7 @@
 > It only ever describes the **present state**. When something changes, edit it in place; the reasoning and history
 > belong in [`DECISIONS.md`](DECISIONS.md). Items marked **(proposed)** are not yet confirmed — see the linked decision.
 
-_Last updated: 2026-11-12_
+_Last updated: 2026-11-13_
 
 ---
 
@@ -305,7 +305,7 @@ page code. Adding a language later means copying that file and translating it. S
 | When | Milestone |
 |---|---|
 | Week of 19 Oct | ✅ Tracker and parts ordered. Collect stops/timetable; driver consent; DPO contact |
-| Week of 26 Oct | ✅ Project email (`dormshuttle@proton.me`, done 12 Nov). ✅ Hosting on Cloudflare (free address, [D-036](DECISIONS.md#d-036)). Next: Supabase project, CARTO key |
+| Week of 26 Oct | ✅ Project email (`dormshuttle@proton.me`, done 12 Nov). ✅ Hosting on Cloudflare (free address, [D-036](DECISIONS.md#d-036)). ✅ Supabase project (Frankfurt) connected, 13 Nov. Next: CARTO key |
 | Weeks of 26 Oct, 2 Nov | Student page: timetable + map with route (fake bus position); tracker firmware on the bench |
 | Week of 9 Nov | Supabase, admin page, alerts, passcode, pause switch |
 | Week of 16 Nov | Tracker connected end-to-end (or phone stand-in if the device is late) |

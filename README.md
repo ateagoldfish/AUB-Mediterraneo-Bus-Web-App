@@ -11,8 +11,11 @@ University semester project (Industrial Engineering), due 1 December 2026. Not a
 python3 -m http.server 8080
 ```
 
-Then open <http://localhost:8080> (student passcode `demo`) and <http://localhost:8080/admin/> (passcode
-`admin-demo`). Until Supabase is configured the site runs in **demo mode** with example data and a simulated bus.
+Then open <http://localhost:8080> and <http://localhost:8080/admin/>. The site is connected to the real Supabase
+project. To try it with example data and a simulated bus instead (**demo mode**, student passcode `demo`, admin
+passcode `admin-demo`), empty `supabaseUrl` in `src/config.js`.
+
+Live site: <https://dorm-shuttle.dormshuttle.workers.dev>
 
 ## Documentation
 
@@ -23,5 +26,5 @@ Then open <http://localhost:8080> (student passcode `demo`) and <http://localhos
 
 ## Status
 
-Student and admin pages built and working in demo mode. Next: Supabase project, Cloudflare deployment, tracker
-connection.
+Student and admin pages built; live on Cloudflare and connected to Supabase (13 Nov). Next: service hours and
+timetable entered by the admin, English map labels (CARTO key), tracker connection.

@@ -3,11 +3,12 @@
 //
 // While `supabaseUrl` is empty the site runs in DEMO MODE: example timetable,
 // simulated bus, and everything the admin changes is stored only in this browser.
+// Empty it again to go back to demo mode.
 
 export const config = {
-  supabaseUrl: '',          // e.g. 'https://abcdefgh.supabase.co'
-  supabaseAnonKey: '',      // the project's "anon public" key (safe to publish)
-  adminEmail: '',           // the project email used for the admin login (D-017)
+  supabaseUrl: 'https://iktqbnnzhdcmyxwuugre.supabase.co',
+  supabaseAnonKey: 'sb_publishable_rwnJp_UfY78nMDSFROb3jQ_althKJEv', // publishable key: meant to be public
+  adminEmail: 'dormshuttle@proton.me', // the project email used for the admin login (D-017)
 
   timeZone: 'Europe/Nicosia',
   mapCenter: [34.784, 32.434],
